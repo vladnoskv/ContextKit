@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+.next/
+coverage/
+.vscode-test/
+src/
+test/
+*.tgz
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.contextkit-backup
+*.contextkit-backup.md
+
+# IgnoreKit
+# Added from VS Code Explorer
+/docs/
+# End IgnoreKit

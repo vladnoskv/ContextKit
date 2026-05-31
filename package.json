@@ -1,0 +1,43 @@
+{
+  "name": "contextkit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Coding Context Manager — manage, validate, split, convert, and measure AI coding instruction files",
+  "keywords": [
+    "ai",
+    "context",
+    "instructions",
+    "agents.md",
+    "claude.md",
+    "cursor",
+    "copilot",
+    "developer-tools",
+    "context-hygiene"
+  ],
+  "license": "MIT",
+  "author": "Vlad Noskov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VladNoskov/contextkit"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "pack:cli": "pnpm --filter contextkit pack",
+    "pack:vscode": "pnpm --filter contextkit-vscode package",
+    "clean": "pnpm -r clean",
+    "smoke:bun": "bun packages/cli/src/index.ts scan --root examples/basic-next-app"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "devDependencies": {
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  }
+}

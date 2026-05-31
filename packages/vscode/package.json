@@ -1,0 +1,181 @@
+{
+  "name": "contextkit-vscode",
+  "displayName": "ContextKit",
+  "version": "0.1.0",
+  "description": "AI Coding Context Manager — manage, validate, split, convert, and measure AI coding instruction files",
+  "publisher": "VladNoskov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VladNoskov/contextkit"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Linters"
+  ],
+  "keywords": [
+    "ai",
+    "context",
+    "instructions",
+    "agents.md",
+    "claude.md",
+    "cursor",
+    "copilot",
+    "developer-tools"
+  ],
+  "activationEvents": [
+    "onCommand:contextkit.scanWorkspace",
+    "onCommand:contextkit.refresh",
+    "onCommand:contextkit.openReport",
+    "onCommand:contextkit.generateInstructions",
+    "onCommand:contextkit.splitInstructionFile",
+    "onCommand:contextkit.convertInstructions",
+    "onCommand:contextkit.createContextPack",
+    "onCommand:contextkit.openSettings",
+    "onView:contextkit.sidebar",
+    "workspaceContains:**/AGENTS.md",
+    "workspaceContains:**/CLAUDE.md",
+    "workspaceContains:**/.cursor/rules/**",
+    "workspaceContains:**/.github/copilot-instructions.md"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "contextkit.scanWorkspace",
+        "title": "ContextKit: Scan Workspace"
+      },
+      {
+        "command": "contextkit.refresh",
+        "title": "ContextKit: Refresh"
+      },
+      {
+        "command": "contextkit.openReport",
+        "title": "ContextKit: Open Report"
+      },
+      {
+        "command": "contextkit.generateInstructions",
+        "title": "ContextKit: Generate Instructions"
+      },
+      {
+        "command": "contextkit.splitInstructionFile",
+        "title": "ContextKit: Split Instruction File"
+      },
+      {
+        "command": "contextkit.convertInstructions",
+        "title": "ContextKit: Convert Instructions"
+      },
+      {
+        "command": "contextkit.createContextPack",
+        "title": "ContextKit: Create Context Pack"
+      },
+      {
+        "command": "contextkit.openSettings",
+        "title": "ContextKit: Open Settings"
+      },
+      {
+        "command": "contextkit.openFile",
+        "title": "ContextKit: Open File"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "contextkit",
+          "title": "ContextKit",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "contextkit": [
+        {
+          "id": "contextkit.sidebar",
+          "name": "Project Context"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ContextKit",
+      "properties": {
+        "contextkit.autoScanOnOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan the workspace when the extension activates."
+        },
+        "contextkit.autoScanOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan when instruction files are saved."
+        },
+        "contextkit.tokenWarningThreshold": {
+          "type": "number",
+          "default": 4000,
+          "description": "Token count threshold for warnings."
+        },
+        "contextkit.tokenErrorThreshold": {
+          "type": "number",
+          "default": 8000,
+          "description": "Token count threshold for errors."
+        },
+        "contextkit.include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Additional file patterns to include."
+        },
+        "contextkit.exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["node_modules", ".git", "dist", "build", ".next", "coverage"],
+          "description": "Patterns to exclude from scanning."
+        },
+        "contextkit.preferredInstructionFormat": {
+          "type": "string",
+          "default": "agents",
+          "enum": ["agents", "claude", "cursor", "copilot", "roo"],
+          "description": "Preferred instruction file format."
+        },
+        "contextkit.defaultContextPacks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["frontend", "backend", "database", "testing", "security", "deployment"],
+          "description": "Default context packs to show in the sidebar."
+        },
+        "contextkit.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable diagnostics (warnings/errors) in instruction files."
+        },
+        "contextkit.enableStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show ContextKit status in the status bar."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsup src/extension.ts --format cjs --external vscode --clean",
+    "build": "tsup src/extension.ts --format cjs --external vscode --clean",
+    "watch": "tsup src/extension.ts --format cjs --external vscode --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "package": "pnpm run build && npx @vscode/vsce package --skip-license"
+  },
+  "dependencies": {
+    "@contextkit/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^20.0.0",
+    "@vscode/vsce": "^2.26.0",
+    "tsup": "^8.0.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0"
+  }
+}
