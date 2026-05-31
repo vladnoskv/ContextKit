@@ -14,6 +14,7 @@ Commands:
   generate      Generate project-specific instruction files
   pack          Create a context pack for a specific domain
   init          Create a contextkit.config.json file
+  skills        Manage ContextKit skills for AI coding agents
 
 Options:
   --root, -r    Root directory (default: current working directory)
@@ -27,7 +28,17 @@ Options:
   --from        Source file path (for convert)
   --to          Target format (for convert)
   --by-file     Show tokens per file (for tokens)
+  --kind, -k    Target instruction kind (for skills add/remove)
   --help, -h    Show this help message
+
+Skills Subcommands:
+  skills list [category]       List available skills by category
+  skills show <name>           Show skill content and metadata
+  skills add <name>            Install a skill into the project
+  skills remove <name>         Remove an installed skill
+  skills installed             List installed skills in the project
+  skills search <query>        Search for skills by name or tag
+  skills categories            List all skill categories
 
 Examples:
   contextkit scan
@@ -39,5 +50,11 @@ Examples:
   contextkit split AGENTS.md --dry-run
   contextkit generate agents --dry-run
   contextkit pack frontend --out context/frontend.md
+  contextkit skills list
+  contextkit skills show typescript-strict
+  contextkit skills add typescript-strict
+  contextkit skills add core-engineering --group
+  contextkit skills remove typescript-strict
+  contextkit skills search react
 `);
 }

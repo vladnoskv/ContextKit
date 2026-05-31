@@ -4,6 +4,7 @@ import { ContextKitTreeProvider } from "./tree/treeProvider.js";
 import { DiagnosticsProvider } from "./diagnostics/diagnosticsProvider.js";
 import { StatusBarManager } from "./statusbar/statusBar.js";
 import { registerCommands } from "./commands/index.js";
+import { registerCodeActions } from "./diagnostics/codeActions.js";
 import { getConfig } from "./config/settings.js";
 import { isInstructionFileName } from "./utils/index.js";
 
@@ -30,12 +31,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerCommands(context, {
     getLastScanResult: () => lastScanResult,
-    setLastScanResult: (r) => { lastScanResult = r; },
+    setLastScanResult: (r) => {
+      lastScanResult = r;
+    },
     refreshTree: () => treeProvider.refresh(),
     refreshDiagnostics: () => diagnosticsProvider.updateDiagnostics(lastScanResult),
     refreshStatusBar: () => statusBar.update(lastScanResult),
     scanWorkspace,
     getConfig,
+    isWorkspaceTrusted: () => vscode.workspace.isTrusted,
+  });
+
+  registerCodeActions(context, {
+    isWorkspaceTrusted: () => vscode.workspace.isTrusted,
   });
 
   // Auto-scan if enabled
@@ -112,18 +120,4 @@ async function scanWorkspace(): Promise<ContextScanResult | undefined> {
     vscode.window.showErrorMessage(`ContextKit scan failed: ${err.message}`);
     return undefined;
   }
-}
-
-function isInstructionFile(fileName: string): boolean {
-  const lower = fileName.toLowerCase();
-  return (
-    lower.endsWith("agents.md") ||
-    lower.endsWith("claude.md") ||
-    lower.includes(".cursor/rules") ||
-    lower.endsWith("copilot-instructions.md") ||
-    lower.includes(".roo/rules") ||
-    lower.includes(".codex/") ||
-    lower.includes(".windsurf/rules") ||
-    lower.includes(".gemini/")
-  );
 }

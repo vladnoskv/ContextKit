@@ -1,7 +1,12 @@
 import * as vscode from "vscode";
-import type { ContextScanResult } from "@contextkit/core";
+import type { ContextScanResult, BuiltinSkill, InstalledSkill, SkillGroupDefinition } from "@contextkit/core";
+import {
+  getSkillsByCategory as coreGetSkillsByCategory,
+  resolveGroupSkills as coreResolveGroupSkills,
+} from "@contextkit/core";
 
-type TreeNode = OverviewNode | SectionNode | FileNode | IssueNode | PackNode | ActionNode | TextNode;
+
+type TreeNode = OverviewNode | SectionNode | FileNode | IssueNode | PackNode | ActionNode | TextNode | SkillNode | SkillGroupNode | SkillCategoryNode;
 
 interface OverviewNode {
   type: "overview";
@@ -52,6 +57,26 @@ interface ActionNode {
   icon?: string;
 }
 
+interface SkillNode {
+  type: "skill";
+  label: string;
+  skillName: string;
+  title: string;
+  installed?: boolean;
+}
+
+interface SkillGroupNode {
+  type: "skillGroup";
+  label: string;
+  groupId: string;
+}
+
+interface SkillCategoryNode {
+  type: "skillCategory";
+  label: string;
+  categoryId: string;
+}
+
 export class ContextKitTreeProvider
   implements vscode.TreeDataProvider<TreeNode>
 {
@@ -87,6 +112,12 @@ export class ContextKitTreeProvider
         return createPackItem(element);
       case "action":
         return createActionItem(element);
+      case "skill":
+        return createSkillItem(element);
+      case "skillGroup":
+        return createSkillGroupItem(element);
+      case "skillCategory":
+        return createSkillCategoryItem(element);
     }
   }
 
@@ -118,6 +149,14 @@ export class ContextKitTreeProvider
 
     if (element.type === "section") {
       return this.getSectionChildren(element.label);
+    }
+
+    if (element.type === "skillGroup") {
+      return this.getSkillsGroupChildren(element.groupId);
+    }
+
+    if (element.type === "skillCategory") {
+      return this.getSkillsCategoryChildren(element.categoryId);
     }
 
     return [];
@@ -163,10 +202,113 @@ export class ContextKitTreeProvider
             packType: pack,
           }),
         );
+      case "Skills":
+        return [
+          {
+            type: "skillGroup",
+            label: "Installed Skills",
+            groupId: "__installed__",
+          } as SkillGroupNode,
+          {
+            type: "skillGroup",
+            label: "Recommended Skills",
+            groupId: "__recommended__",
+          } as SkillGroupNode,
+          {
+            type: "text",
+            label: "",
+          } as TextNode,
+          {
+            type: "skillGroup",
+            label: "Browse Skills",
+            groupId: "__browse__",
+          } as SkillGroupNode,
+          {
+            type: "action",
+            label: "Search Skills",
+            command: "contextkit.skillsSearch",
+            tooltip: "Search the skill library",
+            icon: "$(search)",
+          } as ActionNode,
+        ];
       case "Actions":
         return buildActions();
       default:
         return [];
+    }
+  }
+
+  private getSkillsGroupChildren(groupId: string): TreeNode[] {
+    if (groupId === "__installed__") return this.getInstalledSkillNodes();
+    if (groupId === "__recommended__") return this.getRecommendedSkillNodes();
+    if (groupId === "__browse__") return this.getBrowseSkillNodes();
+    return this.getGroupSkillNodes(groupId);
+  }
+
+  private getInstalledSkillNodes(): TreeNode[] {
+    return [
+      {
+        type: "action",
+        label: "Add Skills...",
+        command: "contextkit.skillsSearch",
+        tooltip: "Search and install skills",
+        icon: "$(add)",
+      },
+    ];
+  }
+
+  private getRecommendedSkillNodes(): TreeNode[] {
+    return [
+      {
+        type: "action",
+        label: "Run scan to see recommendations",
+        command: "contextkit.scanWorkspace",
+        tooltip: "Scan workspace to get skill recommendations",
+        icon: "$(refresh)",
+      },
+    ];
+  }
+
+  private getBrowseSkillNodes(): TreeNode[] {
+    return [
+      { type: "skillCategory", label: "Core Engineering", categoryId: "core-engineering" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Frontend", categoryId: "frontend" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Backend & API", categoryId: "backend-api" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Database", categoryId: "database" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Security", categoryId: "security" } as SkillCategoryNode,
+      { type: "skillCategory", label: "DevOps & CI/CD", categoryId: "devops" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Package & Open Source", categoryId: "package-open-source" } as SkillCategoryNode,
+      { type: "skillCategory", label: "AI Coding Workflow", categoryId: "ai-coding-workflow" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Framework Specific", categoryId: "framework-specific" } as SkillCategoryNode,
+      { type: "skillCategory", label: "Testing", categoryId: "testing" } as SkillCategoryNode,
+    ];
+  }
+
+  private getSkillsCategoryChildren(categoryId: string): TreeNode[] {
+    try {
+      const skills = coreGetSkillsByCategory(categoryId as any) as BuiltinSkill[];
+      return skills.map((s) => ({
+        type: "skill" as const,
+        label: s.name,
+        skillName: s.name,
+        title: s.title,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private getGroupSkillNodes(groupId: string): TreeNode[] {
+    try {
+      const names = coreResolveGroupSkills([groupId]) as string[];
+      return names.map((name) => ({
+        type: "skill" as const,
+        label: name,
+        skillName: name,
+        title: name,
+      }));
+    } catch {
+      return [];
     }
   }
 }
@@ -191,6 +333,11 @@ function buildRootTree(result: ContextScanResult): TreeNode[] {
     {
       type: "section",
       label: "Context Packs",
+      children: [],
+    },
+    {
+      type: "section",
+      label: "Skills",
       children: [],
     },
     {
@@ -339,4 +486,41 @@ function createActionItem(node: ActionNode): vscode.TreeItem {
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function createSkillItem(node: SkillNode): vscode.TreeItem {
+  return {
+    label: node.title || node.skillName,
+    description: node.skillName,
+    tooltip: `Skill: ${node.skillName}\n${node.installed ? "Installed" : "Click to preview and install"}`,
+    iconPath: new vscode.ThemeIcon(node.installed ? "check" : "book"),
+    contextValue: "skill",
+    command: {
+      command: "contextkit.skillsPreview",
+      title: "Preview Skill",
+      arguments: [node.skillName],
+    },
+  };
+}
+
+function createSkillGroupItem(node: SkillGroupNode): vscode.TreeItem {
+  const icon = node.groupId === "__installed__" ? "checklist"
+    : node.groupId === "__recommended__" ? "lightbulb"
+    : node.groupId === "__browse__" ? "library"
+    : "folder";
+  return {
+    label: node.label,
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    iconPath: new vscode.ThemeIcon(icon),
+    contextValue: "skillGroup",
+  };
+}
+
+function createSkillCategoryItem(node: SkillCategoryNode): vscode.TreeItem {
+  return {
+    label: node.label,
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    iconPath: new vscode.ThemeIcon("folder-library"),
+    contextValue: "skillCategory",
+  };
 }

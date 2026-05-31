@@ -216,3 +216,105 @@ export interface ConfigFile {
   customInstructionFiles: string[];
   conflictRules: ConflictGroup[];
 }
+
+// ── Skills System ──
+
+export type SkillCategory =
+  | "core-engineering"
+  | "frontend"
+  | "backend-api"
+  | "database"
+  | "security"
+  | "devops"
+  | "package-open-source"
+  | "ai-coding-workflow"
+  | "framework-specific"
+  | "testing"
+  | "product-ux"
+  | "i18n-localization"
+  | "prediction-market"
+  | "repository-maintenance"
+  | "advanced";
+
+export interface SkillMetadata {
+  name: string;
+  title: string;
+  category: SkillCategory;
+  description: string;
+  version: string;
+  tags: string[];
+  appliesTo: string[];
+  requires?: string[];
+  conflictsWith?: string[];
+  related?: string[];
+}
+
+export interface BuiltinSkill extends SkillMetadata {
+  content: string;
+}
+
+export interface InstalledSkill extends SkillMetadata {
+  source: "builtin" | "custom";
+  installedAt: string;
+  path: string;
+  localHash?: string;
+  upstreamHash?: string;
+  modified?: boolean;
+}
+
+export interface SkillInstallOptions {
+  rootDir: string;
+  skills: string[];
+  groups?: string[];
+  targetFormat?: InstructionFormat;
+  dryRun?: boolean;
+  overwrite?: boolean;
+  updateInstructionFiles?: boolean;
+}
+
+export interface SkillInstallResult {
+  installed: InstalledSkill[];
+  skipped: string[];
+  updatedFiles: string[];
+  warnings: string[];
+}
+
+export interface SkillDoctorIssue {
+  id: string;
+  severity: "info" | "warning" | "error";
+  message: string;
+  filePath?: string;
+  suggestion?: string;
+}
+
+export type InstructionFormat =
+  | "agents"
+  | "claude"
+  | "cursor"
+  | "copilot"
+  | "roo"
+  | "codex"
+  | "windsurf"
+  | "gemini"
+  | "markdown";
+
+export interface SkillsManifest {
+  version: 1;
+  installedAt: string;
+  skills: {
+    name: string;
+    version: string;
+    source: "builtin" | "custom";
+    installedAt: string;
+    path: string;
+    localHash?: string;
+    upstreamHash?: string;
+  }[];
+  groups: string[];
+}
+
+export interface SkillGroupDefinition {
+  id: string;
+  label: string;
+  skills: string[];
+}

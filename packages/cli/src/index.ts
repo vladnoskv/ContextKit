@@ -9,6 +9,7 @@ import { handleSplit } from "./commands/split.js";
 import { handleGenerate } from "./commands/generate.js";
 import { handlePack } from "./commands/pack.js";
 import { handleInit } from "./commands/init.js";
+import { handleSkills } from "./commands/skills.js";
 import { printHelp } from "./output/help.js";
 
 async function main(): Promise<void> {
@@ -47,6 +48,9 @@ async function main(): Promise<void> {
         break;
       case "pack":
         await handlePack(args);
+        break;
+      case "skills":
+        await handleSkills(args);
         break;
       default:
         // Default to scan

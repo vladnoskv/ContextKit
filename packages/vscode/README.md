@@ -1,5 +1,7 @@
 # ContextKit — VS Code Extension
 
+![ContextKit logo](media/contextkit-logo.png)
+
 **AI Coding Context Manager** for VS Code.
 
 Manage, validate, split, convert, and measure AI coding instruction files directly from your editor.

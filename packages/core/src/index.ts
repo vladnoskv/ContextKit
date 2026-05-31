@@ -13,6 +13,16 @@ import type {
   InstructionFile,
   ContextIssue,
   FileSystemAdapter,
+  SkillCategory,
+  SkillMetadata,
+  BuiltinSkill,
+  InstalledSkill,
+  SkillInstallOptions,
+  SkillInstallResult,
+  SkillDoctorIssue,
+  InstructionFormat,
+  SkillsManifest,
+  SkillGroupDefinition,
 } from "./types/index.js";
 import { scanInstructions } from "./scanner/index.js";
 import { analyzeDuplicates } from "./analyzer/duplicateRuleAnalyzer.js";
@@ -32,6 +42,27 @@ import { calculateHealthScore } from "./utils/healthScore.js";
 import { createNodeFileSystemAdapter } from "./utils/fsAdapter.js";
 import { loadConfig, mergeConfig, DEFAULT_CONFIG } from "./utils/config.js";
 import { detectInstructionKind, instructionKindToPath, ALL_INSTRUCTION_KINDS } from "./utils/instructionKinds.js";
+import {
+  getSkill,
+  listSkills,
+  listCategories,
+  searchSkills,
+  getSkillsByCategory,
+  getInstalledSkills,
+  installSkills,
+  removeInstalledSkill,
+  updateInstalledSkills,
+  exportSkillsToInstructionFormat,
+  runSkillsDoctor,
+  getRecommendedSkills,
+  listGroups,
+  getGroup,
+  resolveGroupSkills,
+  SKILL_CATEGORIES,
+  SKILL_CATEGORY_LABELS,
+  ALL_SKILLS,
+  SKILL_GROUPS,
+} from "./skills/index.js";
 
 // Re-export types
 export type {
@@ -58,6 +89,16 @@ export type {
   HeadingNode,
   MarkdownSection,
   Tokenizer,
+  SkillCategory,
+  SkillMetadata,
+  BuiltinSkill,
+  InstalledSkill,
+  SkillInstallOptions,
+  SkillInstallResult,
+  SkillDoctorIssue,
+  InstructionFormat,
+  SkillsManifest,
+  SkillGroupDefinition,
 } from "./types/index.js";
 
 export type { ConflictFinding, DuplicateAnalysis } from "./analyzer/index.js";
@@ -85,6 +126,25 @@ export {
   detectInstructionKind,
   instructionKindToPath,
   ALL_INSTRUCTION_KINDS,
+  getSkill,
+  listSkills,
+  listCategories,
+  searchSkills,
+  getSkillsByCategory,
+  getInstalledSkills,
+  installSkills,
+  removeInstalledSkill,
+  updateInstalledSkills,
+  exportSkillsToInstructionFormat,
+  runSkillsDoctor,
+  getRecommendedSkills,
+  listGroups,
+  getGroup,
+  resolveGroupSkills,
+  SKILL_CATEGORIES,
+  SKILL_CATEGORY_LABELS,
+  ALL_SKILLS,
+  SKILL_GROUPS,
 };
 
 export async function scanContext(

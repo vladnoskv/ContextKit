@@ -5,6 +5,7 @@
   "description": "AI Coding Context Manager — manage, validate, split, convert, and measure AI coding instruction files",
   "publisher": "VladNoskov",
   "license": "MIT",
+  "icon": "media/contextkit-icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/VladNoskov/contextkit"
@@ -35,6 +36,10 @@
     "onCommand:contextkit.convertInstructions",
     "onCommand:contextkit.createContextPack",
     "onCommand:contextkit.openSettings",
+    "onCommand:contextkit.openFile",
+    "onCommand:contextkit.skillsSearch",
+    "onCommand:contextkit.skillsPreview",
+    "onCommand:contextkit.skillsAdd",
     "onView:contextkit.sidebar",
     "workspaceContains:**/AGENTS.md",
     "workspaceContains:**/CLAUDE.md",
@@ -79,6 +84,18 @@
       {
         "command": "contextkit.openFile",
         "title": "ContextKit: Open File"
+      },
+      {
+        "command": "contextkit.skillsSearch",
+        "title": "ContextKit: Search Skills"
+      },
+      {
+        "command": "contextkit.skillsPreview",
+        "title": "ContextKit: Preview Skill"
+      },
+      {
+        "command": "contextkit.skillsAdd",
+        "title": "ContextKit: Add Skill"
       }
     ],
     "viewsContainers": {
@@ -86,7 +103,7 @@
         {
           "id": "contextkit",
           "title": "ContextKit",
-          "icon": "$(checklist)"
+          "icon": "media/contextkit-activitybar.png"
         }
       ]
     },
