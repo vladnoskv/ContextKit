@@ -18,4 +18,5 @@ Thumbs.db
 # Added from VS Code Explorer
 /docs/
 /build.bat
+*.vsix
 # End IgnoreKit

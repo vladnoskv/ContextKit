@@ -1,6 +1,6 @@
 {
   "name": "@contextkit/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AgentContextKit MCP server for AI coding agent skill library management",
   "type": "module",
   "main": "./dist/index.js",

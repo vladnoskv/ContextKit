@@ -17,5 +17,5 @@ Thumbs.db
 # Added from VS Code Explorer
 packages/core/test/
 packages/vscode/test/
-/build.bat
+build.bat
 # End IgnoreKit

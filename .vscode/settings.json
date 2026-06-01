@@ -1,0 +1,8 @@
+{
+    "publishguard.scanOnSave": true,
+    "publishguard.blockPublishOnError": true,
+    "publishguard.includeGitIgnored": false,
+    "publishguard.severityThreshold": "info",
+    "publishguard.dependencyAudit": false,
+    "publishguard.socketDev": false
+}

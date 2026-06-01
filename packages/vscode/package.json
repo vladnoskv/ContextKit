@@ -1,7 +1,7 @@
 {
   "name": "contextkit-vscode",
   "displayName": "AgentContextKit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local-first AI coding agent context manager for AGENTS.md, Claude, Cursor, Copilot, Codex, MCP skills, and prompt library hygiene",
   "publisher": "VladNoskov",
   "license": "MIT",
@@ -34,6 +34,7 @@
     "developer-tools"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onView:contextkit.sidebar",
     "onView:contextkit.setup",
     "onCommand:contextkit.scanWorkspace",
@@ -201,10 +202,8 @@
     "clean": "rm -rf dist",
     "package": "pnpm run build && npx @vscode/vsce package --skip-license"
   },
-  "dependencies": {
-    "@contextkit/core": "workspace:*"
-  },
   "devDependencies": {
+    "@contextkit/core": "workspace:*",
     "@types/vscode": "^1.90.0",
     "@types/node": "^20.0.0",
     "@vscode/vsce": "^2.26.0",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 - VS Code Activation Fix
+
+### Fixed
+
+- Ensure the VS Code extension activates when AgentContextKit views or commands are opened, so the Project Context tree provider and Setup webview provider are registered.
+- Add startup-finished activation as a fallback for hosts that render the contributed views before view-specific activation completes.
+- Bundle the core package into the VS Code extension so packaged installs can load the extension entrypoint without workspace `node_modules`.
+
 ## 0.1.0 — Initial Release
 
 ### Added
