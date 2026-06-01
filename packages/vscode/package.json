@@ -34,21 +34,6 @@
     "developer-tools"
   ],
   "activationEvents": [
-    "onCommand:contextkit.scanWorkspace",
-    "onCommand:contextkit.refresh",
-    "onCommand:contextkit.openReport",
-    "onCommand:contextkit.generateInstructions",
-    "onCommand:contextkit.splitInstructionFile",
-    "onCommand:contextkit.convertInstructions",
-    "onCommand:contextkit.createContextPack",
-    "onCommand:contextkit.openSettings",
-    "onCommand:contextkit.openFile",
-    "onCommand:contextkit.skillsSearch",
-    "onCommand:contextkit.skillsPreview",
-    "onCommand:contextkit.skillsAdd",
-    "onCommand:contextkit.skillsWizard",
-    "onView:contextkit.sidebar",
-    "onView:contextkit.setup",
     "workspaceContains:**/AGENTS.md",
     "workspaceContains:**/CLAUDE.md",
     "workspaceContains:**/.cursor/rules/**",
@@ -127,7 +112,8 @@
         },
         {
           "id": "contextkit.setup",
-          "name": "Setup"
+          "name": "Setup",
+          "type": "webview"
         }
       ]
     },
