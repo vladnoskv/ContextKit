@@ -1,7 +1,5 @@
 # AgentContextKit for VS Code
 
-![AgentContextKit logo](media/contextkit-logo.png)
-
 **A local-first AI coding agent context manager for VS Code.**
 
 AgentContextKit helps you keep `AGENTS.md`, Claude, Cursor, GitHub Copilot, Codex, Roo, Windsurf, and Gemini instruction files clear, current, and useful.
