@@ -50,7 +50,7 @@ export class DiagnosticsProvider implements vscode.Disposable {
           severity,
         );
 
-        diagnostic.source = "ContextKit";
+        diagnostic.source = "AgentContextKit";
         diagnostic.code = issue.type;
         return diagnostic;
       });

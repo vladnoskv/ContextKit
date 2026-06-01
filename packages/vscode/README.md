@@ -1,104 +1,63 @@
-# ContextKit — VS Code Extension
+# AgentContextKit for VS Code
 
-![ContextKit logo](media/contextkit-logo.png)
+![AgentContextKit logo](media/contextkit-logo.png)
 
-**AI Coding Context Manager** for VS Code.
+**A local-first AI coding agent context manager for VS Code.**
 
-Manage, validate, split, convert, and measure AI coding instruction files directly from your editor.
+AgentContextKit helps you keep `AGENTS.md`, Claude, Cursor, GitHub Copilot, Codex, Roo, Windsurf, and Gemini instruction files clear, current, and useful.
 
-## Features
+## What You Can Do
 
-### Sidebar View
+- Scan your workspace for AI instruction files.
+- Find duplicate, conflicting, stale, oversized, or broken guidance.
+- See token estimates before prompts get too large.
+- Generate focused context packs for frontend, backend, database, testing, security, and deployment tasks.
+- Install modular agent skills with a step-by-step wizard.
+- Choose skills by all, category, subcategory, or exact skill.
+- Tune imported skills for the model and provider you use.
+- Edit, remove, and safely update local skills without losing your changes.
 
-Open the ContextKit activity bar to see:
+## Best For
 
-- **Project Overview** — file count, token estimate, issue count, health score
-- **Instruction Files** — clickable list of detected AI instruction files
-- **Issues** — duplicates, conflicts, oversized files, and more
-- **Context Packs** — one-click generation of focused context packs
-- **Actions** — scan, report, split, convert, generate
+- Developers using AI coding agents every day.
+- Teams standardizing prompt and instruction files across repositories.
+- Projects with multiple agent formats such as `AGENTS.md`, `CLAUDE.md`, Cursor rules, and Copilot instructions.
+- Local-first workflows that do not want telemetry or external API calls.
 
-### Status Bar
+## SEO Keywords
 
-See token count and issue count at a glance. Click to open the detailed report.
+AI coding agent context manager, AGENTS.md manager, Claude instructions, Cursor rules, GitHub Copilot instructions, Codex instructions, MCP skill server, AI prompt library, VS Code AI developer tools, repository context hygiene.
 
-### Diagnostics
+## Extension Views
 
-ContextKit adds diagnostics to your instruction files:
+Open the AgentContextKit activity bar to access:
 
-- Duplicate rules across files
-- Conflicting rules (e.g., "use npm" vs "use pnpm")
-- Oversized files exceeding token thresholds
-- Broken local links
-- Missing recommended files
+- **Project Context**: overview, instruction files, issues, context packs, and skills.
+- **Setup**: scan controls, diagnostics settings, token thresholds, and generation defaults.
+- **Skill Install Wizard**: select scope, preview exact skills, choose provider/model setup, and install.
 
-### Webview Report
-
-A rich HTML report showing:
-
-- Health score dashboard
-- Token breakdown by file
-- Issue list with severity badges
-- Detected project info (frameworks, tools, languages)
-- Suggested actions
-
-### Commands
+## Commands
 
 | Command | Description |
 |---|---|
-| `ContextKit: Scan Workspace` | Scan for AI instruction files |
-| `ContextKit: Open Report` | Open the detailed webview report |
-| `ContextKit: Refresh` | Re-run the scan |
-| `ContextKit: Generate Instructions` | Generate project-specific instruction files |
-| `ContextKit: Split Instruction File` | Split a large instruction file into modules |
-| `ContextKit: Convert Instructions` | Convert between instruction formats |
-| `ContextKit: Create Context Pack` | Create a focused context pack |
-| `ContextKit: Open Settings` | Open ContextKit settings |
+| `AgentContextKit: Scan Workspace` | Scan for AI instruction files |
+| `AgentContextKit: Open Report` | Open the local report |
+| `AgentContextKit: Refresh` | Re-run the scan |
+| `AgentContextKit: Generate Instructions` | Generate project-specific instruction files |
+| `AgentContextKit: Split Instruction File` | Split a large instruction file into modules |
+| `AgentContextKit: Convert Instructions` | Convert between instruction formats |
+| `AgentContextKit: Create Context Pack` | Create a focused context pack |
+| `AgentContextKit: Install Skills Wizard` | Import skills with provider/model setup |
 
-## Settings
-
-| Setting | Default | Description |
-|---|---|---|
-| `contextkit.autoScanOnOpen` | `false` | Auto-scan when extension activates |
-| `contextkit.autoScanOnSave` | `false` | Auto-scan when instruction files are saved |
-| `contextkit.tokenWarningThreshold` | `4000` | Token count for warnings |
-| `contextkit.tokenErrorThreshold` | `8000` | Token count for errors |
-| `contextkit.enableDiagnostics` | `true` | Enable diagnostics in instruction files |
-| `contextkit.enableStatusBar` | `true` | Show status bar item |
-| `contextkit.include` | `[]` | Additional file patterns to include |
-| `contextkit.exclude` | `["node_modules", ".git", ...]` | Patterns to exclude |
-| `contextkit.preferredInstructionFormat` | `"agents"` | Default format for generation |
-
-## Supported Files
-
-| File | Tool |
-|---|---|
-| `AGENTS.md` | General |
-| `CLAUDE.md` | Claude |
-| `.cursor/rules/*.mdc` | Cursor |
-| `.github/copilot-instructions.md` | GitHub Copilot |
-| `.roo/rules/*.md` | Roo |
-| `.codex/instructions.md` | Codex |
-| `.windsurf/rules` | Windsurf |
-| `.gemini/GEMINI.md` | Gemini |
+Command IDs still use `contextkit` for compatibility.
 
 ## Privacy
 
-ContextKit processes everything locally. No data is sent externally. No telemetry. No LLM API calls.
+AgentContextKit processes everything locally. No repository data is sent externally. No telemetry. No model API calls.
 
 ## Requirements
 
-- VS Code >= 1.90.0
-
-## Related Tools
-
-| Tool | Purpose |
-|---|---|
-| **i18ntk** | Zero-dependency i18n toolkit for scanning, validation, translation, reports, and runtime loading. |
-| **i18ntk Workbench** | Full VS Code localization health dashboard powered by i18ntk. |
-| **i18ntk Lens** | Lightweight inline translation hovers, diagnostics, and key navigation. |
-| **PublishGuard** | Pre-publish safety scanner for npm packages and VS Code extensions. |
-| **ContextKit** | AI coding context manager for AGENTS.md, Claude, Cursor, Copilot, Roo, and Codex files. |
+- VS Code 1.90.0 or newer
 
 ## License
 

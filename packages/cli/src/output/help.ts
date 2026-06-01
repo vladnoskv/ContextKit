@@ -1,8 +1,9 @@
 export function printHelp(): void {
-  process.stdout.write(`ContextKit - AI Coding Context Manager
+  process.stdout.write(`AgentContextKit - AI Coding Agent Context Manager
 
 Usage:
   contextkit <command> [options]
+  agentcontextkit <command> [options]
 
 Commands:
   scan          Scan workspace for AI instruction files
@@ -14,7 +15,8 @@ Commands:
   generate      Generate project-specific instruction files
   pack          Create a context pack for a specific domain
   init          Create a contextkit.config.json file
-  skills        Manage ContextKit skills for AI coding agents
+  skills        Manage AgentContextKit skills for AI coding agents
+  mcp           Start the AgentContextKit MCP skill server over stdio
 
 Options:
   --root, -r    Root directory (default: current working directory)
@@ -29,6 +31,8 @@ Options:
   --to          Target format (for convert)
   --by-file     Show tokens per file (for tokens)
   --kind, -k    Target instruction kind (for skills add/remove)
+  --provider    Provider profile for skills add (for example: openai)
+  --model       Model profile for skills add (for example: gpt-5)
   --help, -h    Show this help message
 
 Skills Subcommands:
@@ -52,9 +56,10 @@ Examples:
   contextkit pack frontend --out context/frontend.md
   contextkit skills list
   contextkit skills show typescript-strict
-  contextkit skills add typescript-strict
+  contextkit skills add typescript-strict --provider openai --model gpt-5
   contextkit skills add core-engineering --group
   contextkit skills remove typescript-strict
   contextkit skills search react
+  contextkit mcp
 `);
 }

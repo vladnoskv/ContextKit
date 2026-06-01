@@ -1,6 +1,6 @@
 # Token Estimation
 
-ContextKit estimates token counts for instruction files and context packs using a local, offline algorithm.
+AgentContextKit estimates token counts for instruction files and context packs using a local, offline algorithm.
 
 ## Default Estimator
 
@@ -20,7 +20,7 @@ This is a rough approximation based on the observation that, on average, each to
 
 ## Custom Tokenizers
 
-ContextKit exposes a pluggable `Tokenizer` interface:
+AgentContextKit exposes a pluggable `Tokenizer` interface:
 
 ```ts
 interface Tokenizer {

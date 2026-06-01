@@ -1,0 +1,32 @@
+{
+  "name": "@contextkit/mcp",
+  "version": "0.2.0",
+  "description": "AgentContextKit MCP server for AI coding agent skill library management",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "agentcontextkit-mcp": "./dist/index.js",
+    "contextkit-mcp": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --clean --shims",
+    "dev": "tsup src/index.ts --format esm --watch --shims",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@contextkit/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

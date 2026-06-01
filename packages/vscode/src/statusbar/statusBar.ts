@@ -9,13 +9,13 @@ export class StatusBarManager implements vscode.Disposable {
       vscode.StatusBarAlignment.Right,
       100,
     );
-    this.item.name = "ContextKit";
+    this.item.name = "AgentContextKit";
     this.item.command = "contextkit.openReport";
   }
 
   update(result?: ContextScanResult): void {
     if (!result) {
-      this.item.text = "$(checklist) ContextKit: idle";
+      this.item.text = "$(checklist) AgentContextKit: idle";
       this.item.tooltip = "Click to scan workspace";
       return;
     }
@@ -29,7 +29,7 @@ export class StatusBarManager implements vscode.Disposable {
     const tokens = formatTokens(result.totalEstimatedTokens);
 
     const parts: string[] = [];
-    parts.push(`$(checklist) ContextKit: ${tokens} tokens`);
+    parts.push(`$(checklist) AgentContextKit: ${tokens} tokens`);
     if (errorCount > 0) {
       parts.push(`$(error) ${errorCount}`);
     }

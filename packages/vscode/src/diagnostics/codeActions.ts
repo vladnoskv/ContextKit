@@ -27,7 +27,7 @@ class ContextKitCodeActionProvider implements vscode.CodeActionProvider {
     const actions: vscode.CodeAction[] = [];
 
     for (const diagnostic of context.diagnostics) {
-      if (diagnostic.source !== "ContextKit") continue;
+      if (diagnostic.source !== "AgentContextKit") continue;
 
       const code = diagnostic.code as string;
       const trusted = this.deps.isWorkspaceTrusted();
@@ -41,7 +41,7 @@ class ContextKitCodeActionProvider implements vscode.CodeActionProvider {
           action.diagnostics = [diagnostic];
           action.command = {
             command: "contextkit.openReport",
-            title: "Open ContextKit Report",
+            title: "Open AgentContextKit Report",
           };
           action.isPreferred = false;
           actions.push(action);
@@ -56,7 +56,7 @@ class ContextKitCodeActionProvider implements vscode.CodeActionProvider {
           openAction.diagnostics = [diagnostic];
           openAction.command = {
             command: "contextkit.openReport",
-            title: "Open ContextKit Report",
+            title: "Open AgentContextKit Report",
           };
           openAction.isPreferred = true;
           actions.push(openAction);

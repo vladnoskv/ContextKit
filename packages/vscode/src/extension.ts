@@ -7,8 +7,10 @@ import { registerCommands } from "./commands/index.js";
 import { registerCodeActions } from "./diagnostics/codeActions.js";
 import { getConfig } from "./config/settings.js";
 import { isInstructionFileName } from "./utils/index.js";
+import { ContextKitSetupViewProvider, SETUP_VIEW_ID } from "./webview/setupView.js";
 
 let treeProvider: ContextKitTreeProvider;
+let setupViewProvider: ContextKitSetupViewProvider;
 let diagnosticsProvider: DiagnosticsProvider;
 let statusBar: StatusBarManager;
 let lastScanResult: ContextScanResult | undefined;
@@ -17,7 +19,19 @@ export function activate(context: vscode.ExtensionContext): void {
   const config = getConfig();
 
   treeProvider = new ContextKitTreeProvider();
-  vscode.window.registerTreeDataProvider("contextkit.sidebar", treeProvider);
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("contextkit.sidebar", treeProvider),
+  );
+
+  setupViewProvider = new ContextKitSetupViewProvider({
+    getConfig,
+    getLastScanResult: () => lastScanResult,
+    scanWorkspace,
+    isWorkspaceTrusted: () => vscode.workspace.isTrusted,
+  });
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(SETUP_VIEW_ID, setupViewProvider),
+  );
 
   diagnosticsProvider = new DiagnosticsProvider();
   context.subscriptions.push(diagnosticsProvider);
@@ -35,6 +49,7 @@ export function activate(context: vscode.ExtensionContext): void {
       lastScanResult = r;
     },
     refreshTree: () => treeProvider.refresh(),
+    refreshSetupView: () => setupViewProvider.refresh(),
     refreshDiagnostics: () => diagnosticsProvider.updateDiagnostics(lastScanResult),
     refreshStatusBar: () => statusBar.update(lastScanResult),
     scanWorkspace,
@@ -72,6 +87,7 @@ export function activate(context: vscode.ExtensionContext): void {
         } else {
           statusBar.hide();
         }
+        setupViewProvider.refresh();
       }
     }),
   );
@@ -90,7 +106,7 @@ async function triggerScan(): Promise<ContextScanResult | undefined> {
 async function scanWorkspace(): Promise<ContextScanResult | undefined> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
-    vscode.window.showWarningMessage("ContextKit: No workspace folder open.");
+    vscode.window.showWarningMessage("AgentContextKit: No workspace folder open.");
     return undefined;
   }
 
@@ -112,12 +128,13 @@ async function scanWorkspace(): Promise<ContextScanResult | undefined> {
 
     lastScanResult = result;
     treeProvider.setResult(result);
+    setupViewProvider.refresh();
     diagnosticsProvider.updateDiagnostics(result);
     statusBar.update(result);
 
     return result;
   } catch (err: any) {
-    vscode.window.showErrorMessage(`ContextKit scan failed: ${err.message}`);
+    vscode.window.showErrorMessage(`AgentContextKit scan failed: ${err.message}`);
     return undefined;
   }
 }

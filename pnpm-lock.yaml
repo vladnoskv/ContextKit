@@ -38,6 +38,9 @@ importers:
       '@contextkit/core':
         specifier: workspace:*
         version: link:../core
+      '@contextkit/mcp':
+        specifier: workspace:*
+        version: link:../mcp
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -63,6 +66,25 @@ importers:
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.41)
+
+  packages/mcp:
+    dependencies:
+      '@contextkit/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.41
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)

@@ -142,6 +142,7 @@ export type ContextPackType =
 export interface FileSystemAdapter {
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
+  removeFile?(path: string): Promise<void>;
   fileExists(path: string): Promise<boolean>;
   directoryExists(path: string): Promise<boolean>;
   listFiles(dir: string): Promise<string[]>;
@@ -240,17 +241,57 @@ export interface SkillMetadata {
   name: string;
   title: string;
   category: SkillCategory;
+  subcategory?: string;
   description: string;
   version: string;
   tags: string[];
   appliesTo: string[];
+  estimatedTokens?: number;
   requires?: string[];
   conflictsWith?: string[];
   related?: string[];
+  compatibility?: SkillCompatibility;
+  agentCompatibility?: SkillAgentCompatibility;
 }
 
 export interface BuiltinSkill extends SkillMetadata {
   content: string;
+}
+
+export interface SkillCompatibility {
+  targets: string[];
+  majorVersions: SkillMajorVersionKnowledge[];
+  expertise: string[];
+}
+
+export interface SkillMajorVersionKnowledge {
+  version: string;
+  status: "legacy" | "maintenance" | "current" | "next";
+  requirements: string[];
+  features: string[];
+}
+
+export interface SkillAgentCompatibility {
+  providers: SkillProviderCompatibility[];
+  defaultProvider?: string;
+  defaultModel?: string;
+  setup: string[];
+  optimization: string[];
+}
+
+export interface SkillProviderCompatibility {
+  provider: string;
+  models: SkillModelCompatibility[];
+  notes?: string[];
+}
+
+export interface SkillModelCompatibility {
+  id: string;
+  fit: "excellent" | "good" | "limited";
+  contextWindow?: string;
+  recommendedModes: string[];
+  setup: string[];
+  optimization: string[];
 }
 
 export interface InstalledSkill extends SkillMetadata {
@@ -260,6 +301,9 @@ export interface InstalledSkill extends SkillMetadata {
   localHash?: string;
   upstreamHash?: string;
   modified?: boolean;
+  selectedProvider?: string;
+  selectedModel?: string;
+  modelFit?: "excellent" | "good" | "limited" | "unknown";
 }
 
 export interface SkillInstallOptions {
@@ -270,12 +314,52 @@ export interface SkillInstallOptions {
   dryRun?: boolean;
   overwrite?: boolean;
   updateInstructionFiles?: boolean;
+  provider?: string;
+  model?: string;
 }
 
 export interface SkillInstallResult {
   installed: InstalledSkill[];
   skipped: string[];
   updatedFiles: string[];
+  warnings: string[];
+}
+
+export interface SkillSelection {
+  all?: boolean;
+  categories?: SkillCategory[];
+  subcategories?: string[];
+  skills?: string[];
+}
+
+export interface SkillCatalog {
+  all: { id: "all"; label: string; count: number };
+  categories: Array<{ id: SkillCategory; label: string; count: number }>;
+  subcategories: Array<{ id: string; label: string; count: number; category?: SkillCategory }>;
+  skills: SkillMetadata[];
+}
+
+export interface SkillUpdateCandidate {
+  name: string;
+  path: string;
+  installedVersion: string;
+  availableVersion: string;
+  modified: boolean;
+  critical: boolean;
+  reason: string;
+  currentContent?: string;
+  candidateContent: string;
+}
+
+export interface SkillSafeUpdateOptions {
+  apply?: boolean;
+  skills?: string[];
+}
+
+export interface SkillSafeUpdateResult {
+  updated: string[];
+  skipped: string[];
+  reviewRequired: SkillUpdateCandidate[];
   warnings: string[];
 }
 
@@ -309,6 +393,9 @@ export interface SkillsManifest {
     path: string;
     localHash?: string;
     upstreamHash?: string;
+    selectedProvider?: string;
+    selectedModel?: string;
+    modelFit?: "excellent" | "good" | "limited" | "unknown";
   }[];
   groups: string[];
 }

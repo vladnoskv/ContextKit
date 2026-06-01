@@ -1,4 +1,4 @@
-import type { BuiltinSkill, SkillCategory } from "../types/index.js";
+import type { BuiltinSkill, SkillAgentCompatibility, SkillCategory } from "../types/index.js";
 
 export type { SkillCategory };
 
@@ -24,16 +24,98 @@ export const SKILL_CATEGORY_LABELS: Record<SkillCategory, string> = Object.fromE
   SKILL_CATEGORIES.map((c) => [c.id, c.label]),
 ) as Record<SkillCategory, string>;
 
-export const ALL_SKILLS: BuiltinSkill[] = [
+const DEFAULT_AGENT_COMPATIBILITY: SkillAgentCompatibility = {
+  defaultProvider: "openai",
+  defaultModel: "gpt-5",
+  providers: [
+    {
+      provider: "openai",
+      models: [
+        {
+          id: "gpt-5",
+          fit: "excellent",
+          contextWindow: "large",
+          recommendedModes: ["code-editing", "review", "planning"],
+          setup: ["Use the skill as focused task context rather than loading the full skill library."],
+          optimization: ["Import only matching category or subcategory skills to keep prompt context precise."],
+        },
+        {
+          id: "gpt-4.1",
+          fit: "good",
+          contextWindow: "large",
+          recommendedModes: ["code-editing", "review"],
+          setup: ["Keep the selected skill near the task-specific repository context."],
+          optimization: ["Prefer concise skill bundles and avoid importing unrelated categories."],
+        },
+      ],
+      notes: ["Best default for AgentContextKit's coding, review, and planning skills."],
+    },
+    {
+      provider: "anthropic",
+      models: [
+        {
+          id: "claude-sonnet-4",
+          fit: "excellent",
+          contextWindow: "large",
+          recommendedModes: ["code-editing", "architecture", "review"],
+          setup: ["Use the imported skill as project guidance in CLAUDE.md or a dedicated skill file."],
+          optimization: ["Keep constraints explicit and avoid mixing conflicting provider-specific instructions."],
+        },
+      ],
+    },
+    {
+      provider: "google",
+      models: [
+        {
+          id: "gemini-2.5-pro",
+          fit: "good",
+          contextWindow: "large",
+          recommendedModes: ["analysis", "code-editing", "review"],
+          setup: ["Place the skill in GEMINI.md or reference the imported skill file directly."],
+          optimization: ["Use category-level imports for broad reviews and exact skills for implementation work."],
+        },
+      ],
+    },
+  ],
+  setup: [
+    "Select the provider and model used by the target AI coding agent before importing.",
+    "Install only the skills that match the current workflow, repository stack, and agent provider.",
+  ],
+  optimization: [
+    "Prefer exact skill imports for implementation tasks and category imports for audits or onboarding.",
+    "Review modified local skills before applying upstream improvements.",
+  ],
+};
+
+const RAW_SKILLS: BuiltinSkill[] = [
   // ── Core Engineering (6) ──
   {
     name: "typescript-strict",
     title: "TypeScript Strict Mode",
     category: "core-engineering",
+    subcategory: "typescript",
     description: "Rules for writing safe, maintainable TypeScript in strict mode.",
     version: "1.0.0",
     tags: ["typescript", "strict", "safety"],
     appliesTo: ["**/*.ts", "**/*.tsx"],
+    compatibility: {
+      targets: ["typescript"],
+      majorVersions: [
+        {
+          version: "4",
+          status: "maintenance",
+          requirements: ["Use strict mode where possible.", "Prefer `unknown` over `any` at untrusted boundaries."],
+          features: ["Template literal types", "Control-flow type analysis", "`satisfies` in TypeScript 4.9"],
+        },
+        {
+          version: "5",
+          status: "current",
+          requirements: ["Keep `strict` enabled.", "Use explicit module settings that match the runtime and bundler."],
+          features: ["Const type parameters", "Decorators updates", "Improved module resolution and narrowing"],
+        },
+      ],
+      expertise: ["Strict typing", "Type narrowing", "Runtime boundary validation"],
+    },
     content: `# TypeScript Strict Mode
 
 ## Rules
@@ -256,10 +338,29 @@ Run \`pnpm typecheck\` or \`tsc --noEmit\` after changes.
     name: "nextjs-app-router",
     title: "Next.js App Router",
     category: "frontend",
+    subcategory: "nextjs",
     description: "Next.js App Router patterns, server/client components, and route handlers.",
     version: "1.0.0",
     tags: ["nextjs", "react", "app-router", "ssr"],
     appliesTo: ["**/app/**/*.tsx", "**/app/**/*.ts"],
+    compatibility: {
+      targets: ["nextjs", "react"],
+      majorVersions: [
+        {
+          version: "14",
+          status: "maintenance",
+          requirements: ["Use the App Router for new routes.", "Keep Server Components as the default rendering boundary."],
+          features: ["Stable Server Actions", "Partial Prerendering preview", "Route handlers"],
+        },
+        {
+          version: "15",
+          status: "current",
+          requirements: ["Review async request APIs during upgrades.", "Keep caching behavior explicit per route."],
+          features: ["Updated caching defaults", "React 19 alignment", "Improved App Router ergonomics"],
+        },
+      ],
+      expertise: ["Server Components", "Route handlers", "Caching and revalidation"],
+    },
     content: `# Next.js App Router Best Practices
 
 ## Component Architecture
@@ -297,10 +398,29 @@ Run \`pnpm typecheck\` or \`tsc --noEmit\` after changes.
     name: "react-ui",
     title: "React Component Architecture",
     category: "frontend",
+    subcategory: "react",
     description: "React component architecture, hooks, and state management.",
     version: "1.0.0",
     tags: ["react", "components", "hooks", "state"],
     appliesTo: ["**/*.tsx", "**/*.jsx"],
+    compatibility: {
+      targets: ["react"],
+      majorVersions: [
+        {
+          version: "18",
+          status: "maintenance",
+          requirements: ["Use concurrent-safe rendering patterns.", "Keep effects idempotent under Strict Mode remount checks."],
+          features: ["Concurrent rendering", "Automatic batching", "Transitions"],
+        },
+        {
+          version: "19",
+          status: "current",
+          requirements: ["Prefer modern ref handling and action patterns where the app stack supports them.", "Verify framework support before adopting React 19-only APIs."],
+          features: ["Actions", "Document metadata support", "Improved hydration diagnostics"],
+        },
+      ],
+      expertise: ["Component boundaries", "Hooks", "State management", "Rendering performance"],
+    },
     content: `# React Component Architecture
 
 ## Component Design
@@ -461,10 +581,35 @@ Run \`pnpm typecheck\` or \`tsc --noEmit\` after changes.
     name: "postgres-best-practices",
     title: "PostgreSQL Best Practices",
     category: "database",
+    subcategory: "postgres",
     description: "Queries, constraints, transactions, and indexing for PostgreSQL.",
     version: "1.0.0",
     tags: ["postgres", "sql", "database", "performance"],
     appliesTo: ["**/*.sql", "**/migrations/**/*", "**/*.db.*"],
+    compatibility: {
+      targets: ["postgresql"],
+      majorVersions: [
+        {
+          version: "14",
+          status: "maintenance",
+          requirements: ["Use explicit transaction boundaries for migrations.", "Confirm managed-host extension support before relying on extensions."],
+          features: ["Query planner improvements", "JSON and indexing improvements"],
+        },
+        {
+          version: "15",
+          status: "current",
+          requirements: ["Review privileges after schema changes.", "Validate generated SQL against the production target version."],
+          features: ["MERGE", "Improved sort performance", "Logical replication enhancements"],
+        },
+        {
+          version: "16",
+          status: "current",
+          requirements: ["Benchmark query plans after major upgrades.", "Check extension and managed-host compatibility before upgrades."],
+          features: ["Parallel query improvements", "Logical replication from standbys", "Monitoring enhancements"],
+        },
+      ],
+      expertise: ["Indexes", "Migrations", "Query plans", "Data integrity"],
+    },
     content: `# PostgreSQL Best Practices
 
 ## Schema Design
@@ -776,7 +921,7 @@ globs: ["**/*.ts", "**/*.tsx"]
 ## Measurement
 - Run \`contextkit tokens\` to see token estimates for instruction files.
 - Set \`tokenWarningThreshold\` and \`tokenErrorThreshold\` in \`contextkit.config.json\`.
-- ContextKit will flag oversized files during scans.
+- AgentContextKit will flag oversized files during scans.
 - Split large files with \`contextkit split\` if they exceed thresholds.
 `,
   },
@@ -1434,4 +1579,133 @@ globs: ["**/*.ts", "**/*.tsx"]
 - Reset mocks between tests: \`afterEach(() => vi.clearAllMocks())\`.
 `,
   },
+  {
+    name: "model-provider-selection",
+    title: "Model & Provider Selection",
+    category: "ai-coding-workflow",
+    subcategory: "provider-models",
+    description: "Choose the right AI provider, model, context size, and operating mode for coding-agent tasks.",
+    version: "1.0.0",
+    tags: ["models", "providers", "openai", "anthropic", "gemini", "planning"],
+    appliesTo: ["**/AGENTS.md", "**/CLAUDE.md", "**/.cursor/rules/**/*", "**/.codex/**/*"],
+    compatibility: {
+      targets: ["openai", "anthropic", "google"],
+      majorVersions: [
+        {
+          version: "2026",
+          status: "current",
+          requirements: ["Confirm the model available in the user's environment before writing model-specific instructions."],
+          features: ["Provider-specific context windows", "Coding-agent modes", "Long-context review workflows"],
+        },
+      ],
+      expertise: ["Model choice", "Prompt placement", "Context budgeting", "Provider-specific setup"],
+    },
+    content: `# Model & Provider Selection
+
+## Selection Rules
+- Match the model to the task: planning, editing, review, debugging, or large-context analysis.
+- Prefer high-reasoning coding models for cross-file edits, security-sensitive changes, and architecture decisions.
+- Prefer faster or smaller models for narrow formatting, search, summarization, and simple documentation tasks.
+- Verify provider-specific instruction locations before installing skills.
+
+## Provider Setup
+- OpenAI/Codex: keep skills precise and colocated with repository instructions.
+- Anthropic/Claude: use focused skill files and reference them from CLAUDE.md when active.
+- Google/Gemini: keep model setup concise and make long-context assumptions explicit.
+
+## Optimization
+- Import exact skills for implementation tasks.
+- Import category bundles only for onboarding, audits, or broad reviews.
+- Keep provider/model choices visible in installed skill frontmatter.
+- Review local skill edits before applying upstream improvements.
+`,
+  },
+  {
+    name: "mcp-server-design",
+    title: "MCP Server Design",
+    category: "ai-coding-workflow",
+    subcategory: "mcp",
+    description: "Design MCP servers with clear tools, safe write boundaries, stable schemas, and useful client responses.",
+    version: "1.0.0",
+    tags: ["mcp", "tools", "schemas", "agents", "integration"],
+    appliesTo: ["**/mcp/**/*", "**/server.ts", "**/tools/**/*"],
+    compatibility: {
+      targets: ["model-context-protocol"],
+      majorVersions: [
+        {
+          version: "2025",
+          status: "current",
+          requirements: ["Expose narrow tools with explicit JSON schemas.", "Keep mutating tools opt-in and reviewable."],
+          features: ["Tool discovery", "Structured content", "Stdio server integration"],
+        },
+      ],
+      expertise: ["Tool schemas", "Mutation safety", "Stdio lifecycle", "Client compatibility"],
+    },
+    content: `# MCP Server Design
+
+## Tool Design
+- Give each tool one clear job and a small input schema.
+- Return structured content and a readable text summary.
+- Keep discovery tools separate from mutating tools.
+- Use stable names and avoid changing tool contracts without a version note.
+
+## Safety
+- Treat filesystem, shell, network, credential, and workspace writes as explicit user actions.
+- Never overwrite user-modified content without returning a review candidate.
+- Validate paths relative to the target workspace.
+- Return warnings when a requested provider, model, or target capability is unknown.
+
+## Client Experience
+- Make "list", "preview", "apply", and "check" flows easy to chain.
+- Include token cost estimates for prompt or skill content.
+- Include provider/model fit when tool output affects AI-agent behavior.
+`,
+  },
+  {
+    name: "skill-library-maintenance",
+    title: "Skill Library Maintenance",
+    category: "repository-maintenance",
+    subcategory: "skills",
+    description: "Maintain modular skill documents with metadata, compatibility, token budgets, and safe update behavior.",
+    version: "1.0.0",
+    tags: ["skills", "documentation", "versioning", "maintenance"],
+    appliesTo: ["**/skills/**/*.md", "**/library/**/*.md", "**/AGENTS.md"],
+    compatibility: {
+      targets: ["skill-library"],
+      majorVersions: [
+        {
+          version: "1",
+          status: "current",
+          requirements: ["Every skill must have metadata, provider/model guidance, and a clear update path."],
+          features: ["Frontmatter metadata", "Provider compatibility", "Token estimates", "Reviewable updates"],
+        },
+      ],
+      expertise: ["Prompt maintenance", "Skill versioning", "Compatibility metadata", "Library hygiene"],
+    },
+    content: `# Skill Library Maintenance
+
+## Document Structure
+- Store skills as Markdown documents in category and subcategory folders.
+- Keep frontmatter complete: name, title, category, subcategory, version, tags, appliesTo, compatibility, and agentCompatibility.
+- Keep each skill focused on one workflow or domain.
+
+## Quality Checks
+- Every skill should name the providers and models it supports.
+- Include setup notes for each provider/model where behavior differs.
+- Keep estimated token cost visible so users can manage context budgets.
+- Prefer concise rules, concrete examples, and version-specific caveats.
+
+## Updates
+- Never overwrite user-edited skill content automatically.
+- For critical improvements, return a review candidate and explain why it matters.
+- Keep previous local content available during review.
+`,
+  },
 ];
+
+export const ALL_SKILLS: BuiltinSkill[] = RAW_SKILLS.map((skill) => ({
+  ...skill,
+  subcategory: skill.subcategory ?? skill.category,
+  agentCompatibility: skill.agentCompatibility ?? DEFAULT_AGENT_COMPATIBILITY,
+  estimatedTokens: Math.ceil(skill.content.length / 4),
+}));

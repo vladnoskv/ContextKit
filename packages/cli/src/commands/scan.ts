@@ -13,7 +13,7 @@ export async function handleScan(args: CliArgs): Promise<void> {
   }
 
   const lines: string[] = [];
-  lines.push("ContextKit Scan");
+  lines.push("AgentContextKit Scan");
   lines.push("");
   lines.push(`Root: ${result.rootDir}`);
   lines.push(`Instruction files: ${result.files.length}`);

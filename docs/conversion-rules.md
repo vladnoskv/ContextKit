@@ -1,6 +1,6 @@
 # Conversion Rules
 
-ContextKit converts between AI instruction file formats using rule-based, deterministic conversion.
+AgentContextKit converts between AI instruction file formats using rule-based, deterministic conversion.
 
 ## Supported Conversions
 
@@ -16,7 +16,7 @@ ContextKit converts between AI instruction file formats using rule-based, determ
 
 ## Section Mapping
 
-ContextKit maps sections between formats:
+AgentContextKit maps sections between formats:
 
 | Source Section | Target |
 |---|---|

@@ -125,7 +125,7 @@ describe("CLI - Scan Command", () => {
     });
 
     const output = stdout.join("");
-    expect(output).toContain("ContextKit Scan");
+    expect(output).toContain("AgentContextKit Scan");
     expect(output).toContain("Instruction files");
     expect(output).toContain("Health score");
   });
@@ -182,7 +182,7 @@ describe("CLI - Report Command", () => {
     });
 
     const output = stdout.join("");
-    expect(output).toContain("# ContextKit Report");
+    expect(output).toContain("# AgentContextKit Report");
     expect(output).toContain("## Summary");
     expect(output).toContain("Instruction files");
   });

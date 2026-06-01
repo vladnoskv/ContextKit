@@ -1,7 +1,7 @@
 {
   "name": "@contextkit/core",
-  "version": "0.1.0",
-  "description": "Core engine for ContextKit — AI coding context manager",
+  "version": "0.2.0",
+  "description": "Core engine for AgentContextKit — local-first AI coding agent context, instruction, and skill management",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

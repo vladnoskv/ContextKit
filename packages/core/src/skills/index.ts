@@ -10,6 +10,11 @@ import type {
   FileSystemAdapter,
   InstructionFormat,
   SkillGroupDefinition,
+  SkillCatalog,
+  SkillSelection,
+  SkillSafeUpdateOptions,
+  SkillSafeUpdateResult,
+  SkillUpdateCandidate,
 } from "../types/index.js";
 import { SKILL_CATEGORY_LABELS, ALL_SKILLS } from "./data.js";
 import { SKILL_GROUPS } from "./data-groups.js";
@@ -29,8 +34,8 @@ for (const group of SKILL_GROUPS) {
 
 const SKILLS_DIR = ".contextkit/skills";
 const MANIFEST_PATH = ".contextkit/skills.json";
-const MANAGED_START = "<!-- ContextKit Skills Start -->";
-const MANAGED_END = "<!-- ContextKit Skills End -->";
+const MANAGED_START = "<!-- AgentContextKit Skills Start -->";
+const MANAGED_END = "<!-- AgentContextKit Skills End -->";
 
 function hashContent(content: string): string {
   let hash = 0;
@@ -40,6 +45,41 @@ function hashContent(content: string): string {
     hash |= 0;
   }
   return hash.toString(16);
+}
+
+function estimateSkillTokens(content: string): number {
+  return Math.ceil(content.length / 4);
+}
+
+function findModelCompatibility(
+  skill: BuiltinSkill,
+  provider?: string,
+  model?: string,
+) {
+  const agent = skill.agentCompatibility;
+  const selectedProvider = provider ?? agent?.defaultProvider;
+  const selectedModel = model ?? agent?.defaultModel;
+  const providerInfo = agent?.providers.find((p) => p.provider === selectedProvider);
+  const modelInfo = providerInfo?.models.find((m) => m.id === selectedModel);
+  return {
+    selectedProvider,
+    selectedModel,
+    providerInfo,
+    modelInfo,
+    fit: modelInfo?.fit ?? "unknown" as const,
+  };
+}
+
+function renderSkillFile(
+  skill: BuiltinSkill,
+  options: Pick<SkillInstallOptions, "provider" | "model"> = {},
+): string {
+  const compatibility = findModelCompatibility(skill, options.provider, options.model);
+  const modelFit = compatibility.fit;
+  const setup = compatibility.modelInfo?.setup ?? skill.agentCompatibility?.setup ?? [];
+  const optimization = compatibility.modelInfo?.optimization ?? skill.agentCompatibility?.optimization ?? [];
+  const tokenEstimate = estimateSkillTokens(skill.content);
+  return `---\nname: ${skill.name}\ntitle: ${skill.title}\ncategory: ${skill.category}\nsubcategory: ${skill.subcategory ?? skill.category}\nversion: ${skill.version}\nestimatedTokens: ${tokenEstimate}\nselectedProvider: ${compatibility.selectedProvider ?? "unspecified"}\nselectedModel: ${compatibility.selectedModel ?? "unspecified"}\nmodelFit: ${modelFit}\ntags:\n${skill.tags.map((t) => `  - ${t}`).join("\n")}\n---\n\n${skill.content}\n\n## AgentContextKit Import Profile\n\n- Provider: ${compatibility.selectedProvider ?? "unspecified"}\n- Model: ${compatibility.selectedModel ?? "unspecified"}\n- Model fit: ${modelFit}\n- Estimated skill tokens: ${tokenEstimate.toLocaleString()}\n\n### Provider/Model Setup\n${setup.map((item) => `- ${item}`).join("\n") || "- No provider-specific setup recorded."}\n\n### Context Optimization\n${optimization.map((item) => `- ${item}`).join("\n") || "- Keep this skill focused and avoid importing unrelated skills."}\n`;
 }
 
 async function readManifest(rootDir: string, fs: FileSystemAdapter): Promise<SkillsManifest> {
@@ -113,6 +153,83 @@ export function getSkillsByCategory(category: SkillCategory): SkillMetadata[] {
   );
 }
 
+export function getSkillCatalog(): SkillCatalog {
+  const categoryCounts = listCategories();
+  const subcategoryCounts = new Map<string, { label: string; count: number; category?: SkillCategory }>();
+
+  for (const skill of ALL_SKILLS) {
+    const id = skill.subcategory ?? skill.category;
+    const existing = subcategoryCounts.get(id);
+    subcategoryCounts.set(id, {
+      label: existing?.label ?? toLabel(id),
+      count: (existing?.count ?? 0) + 1,
+      category: existing?.category ?? skill.category,
+    });
+  }
+
+  for (const group of SKILL_GROUPS) {
+    const resolved = resolveGroupSkills([group.id]).filter((name) => skillsByName.has(name));
+    if (resolved.length === 0) continue;
+    const existing = subcategoryCounts.get(group.id);
+    subcategoryCounts.set(group.id, {
+      label: group.label,
+      count: resolved.length,
+      category: existing?.category,
+    });
+  }
+
+  return {
+    all: { id: "all", label: "All Skills", count: ALL_SKILLS.length },
+    categories: categoryCounts,
+    subcategories: [...subcategoryCounts.entries()].map(([id, value]) => ({
+      id,
+      label: value.label,
+      count: value.count,
+      category: value.category,
+    })),
+    skills: listSkills(),
+  };
+}
+
+export function resolveSkillSelection(selection: SkillSelection): string[] {
+  const selected = new Set<string>();
+
+  const add = (name: string): void => {
+    if (skillsByName.has(name)) selected.add(name);
+  };
+
+  if (selection.all) {
+    for (const skill of ALL_SKILLS) add(skill.name);
+  }
+
+  for (const category of selection.categories ?? []) {
+    for (const skill of ALL_SKILLS) {
+      if (skill.category === category) add(skill.name);
+    }
+  }
+
+  for (const subcategory of selection.subcategories ?? []) {
+    const group = groupsById.get(subcategory);
+    if (group) {
+      for (const name of resolveGroupSkills([subcategory])) add(name);
+    }
+    for (const skill of ALL_SKILLS) {
+      if ((skill.subcategory ?? skill.category) === subcategory) add(skill.name);
+    }
+  }
+
+  for (const skill of selection.skills ?? []) add(skill);
+
+  return [...selected];
+}
+
+function toLabel(id: string): string {
+  return id
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 // ── Groups API ──
 
 export function listGroups(): SkillGroupDefinition[] {
@@ -156,10 +273,12 @@ export async function getInstalledSkills(rootDir: string, fs: FileSystemAdapter)
       const builtin = skillsByName.get(entry.name);
       const fullPath = fs.joinPath(rootDir, entry.path);
       let localHash: string | undefined;
+      let estimatedTokens = builtin?.estimatedTokens;
       let modified = false;
       try {
         const content = await fs.readFile(fullPath);
         localHash = hashContent(content);
+        estimatedTokens = estimateSkillTokens(content);
         modified = entry.localHash !== localHash;
       } catch {
         // file may have been deleted
@@ -172,12 +291,19 @@ export async function getInstalledSkills(rootDir: string, fs: FileSystemAdapter)
         version: entry.version,
         tags: builtin?.tags ?? [],
         appliesTo: builtin?.appliesTo ?? [],
+        estimatedTokens,
         source: entry.source,
         installedAt: entry.installedAt,
         path: entry.path,
         localHash,
-        upstreamHash: builtin ? hashContent(builtin.content) : undefined,
+        upstreamHash: builtin ? hashContent(renderSkillFile(builtin, {
+          provider: entry.selectedProvider,
+          model: entry.selectedModel,
+        })) : undefined,
         modified,
+        selectedProvider: entry.selectedProvider,
+        selectedModel: entry.selectedModel,
+        modelFit: entry.modelFit,
       };
     }),
   );
@@ -222,7 +348,21 @@ export async function installSkills(
     const skillFileName = `${name}.md`;
     const skillPath = fs.joinPath(SKILLS_DIR, skillFileName);
     const fullPath = fs.joinPath(rootDir, skillPath);
-    const contentHash = hashContent(builtin.content);
+    const compatibility = findModelCompatibility(builtin, options.provider, options.model);
+    const skillContent = renderSkillFile(builtin, {
+      provider: compatibility.selectedProvider,
+      model: compatibility.selectedModel,
+    });
+    const contentHash = hashContent(skillContent);
+    if (options.provider || options.model) {
+      if (!compatibility.providerInfo) {
+        result.warnings.push(`Skill "${name}" has no compatibility entry for provider "${options.provider}".`);
+      } else if (!compatibility.modelInfo) {
+        result.warnings.push(`Skill "${name}" has no compatibility entry for model "${options.model}" on provider "${compatibility.selectedProvider}".`);
+      } else if (compatibility.modelInfo.fit === "limited") {
+        result.warnings.push(`Skill "${name}" has limited fit for ${compatibility.selectedProvider}/${compatibility.selectedModel}.`);
+      }
+    }
 
     // Ensure directory exists
     const skillsDir = fs.joinPath(rootDir, SKILLS_DIR);
@@ -230,8 +370,6 @@ export async function installSkills(
     if (!dirExists) await fs.mkdir(skillsDir);
 
     // Write skill file
-    const header = `---\nname: ${builtin.name}\ntitle: ${builtin.title}\ncategory: ${builtin.category}\nversion: ${builtin.version}\ntags:\n${builtin.tags.map((t) => `  - ${t}`).join("\n")}\n---\n\n`;
-    const skillContent = header + builtin.content;
     await fs.writeFile(fullPath, skillContent);
 
     // Update manifest
@@ -239,6 +377,9 @@ export async function installSkills(
       alreadyInstalled.version = builtin.version;
       alreadyInstalled.localHash = contentHash;
       alreadyInstalled.upstreamHash = contentHash;
+      alreadyInstalled.selectedProvider = compatibility.selectedProvider;
+      alreadyInstalled.selectedModel = compatibility.selectedModel;
+      alreadyInstalled.modelFit = compatibility.fit;
     } else {
       manifest.skills.push({
         name,
@@ -248,6 +389,9 @@ export async function installSkills(
         path: skillPath,
         localHash: contentHash,
         upstreamHash: contentHash,
+        selectedProvider: compatibility.selectedProvider,
+        selectedModel: compatibility.selectedModel,
+        modelFit: compatibility.fit,
       });
     }
 
@@ -259,11 +403,15 @@ export async function installSkills(
       version: builtin.version,
       tags: builtin.tags,
       appliesTo: builtin.appliesTo,
+      estimatedTokens: estimateSkillTokens(skillContent),
       source: "builtin",
       installedAt: new Date().toISOString(),
       path: skillPath,
       localHash: contentHash,
       upstreamHash: contentHash,
+      selectedProvider: compatibility.selectedProvider,
+      selectedModel: compatibility.selectedModel,
+      modelFit: compatibility.fit,
     });
   }
 
@@ -307,10 +455,14 @@ export async function removeInstalledSkill(
   const fullPath = fs.joinPath(rootDir, entry.path);
   const warnings: string[] = [];
   try {
-    const exists = await fs.fileExists(fullPath);
-    if (exists) {
-      await fs.writeFile(fullPath, "");
-    }
+      const exists = await fs.fileExists(fullPath);
+      if (exists) {
+        if (fs.removeFile) {
+          await fs.removeFile(fullPath);
+        } else {
+          await fs.writeFile(fullPath, "");
+        }
+      }
   } catch {
     warnings.push(`Could not remove skill file: ${entry.path}`);
   }
@@ -345,7 +497,11 @@ export async function updateInstalledSkills(
     if (builtin.version === entry.version) continue;
 
     const fullPath = fs.joinPath(rootDir, entry.path);
-    const upstreamHash = hashContent(builtin.content);
+    const upstreamContent = renderSkillFile(builtin, {
+      provider: entry.selectedProvider,
+      model: entry.selectedModel,
+    });
+    const upstreamHash = hashContent(upstreamContent);
     let localModified = false;
     try {
       const existing = await fs.readFile(fullPath);
@@ -360,8 +516,7 @@ export async function updateInstalledSkills(
       continue;
     }
 
-    const header = `---\nname: ${builtin.name}\ntitle: ${builtin.title}\ncategory: ${builtin.category}\nversion: ${builtin.version}\ntags:\n${builtin.tags.map((t) => `  - ${t}`).join("\n")}\n---\n\n`;
-    await fs.writeFile(fullPath, header + builtin.content);
+    await fs.writeFile(fullPath, upstreamContent);
 
     entry.version = builtin.version;
     entry.localHash = upstreamHash;
@@ -370,6 +525,119 @@ export async function updateInstalledSkills(
 
   await writeManifest(rootDir, manifest, fs);
   return result;
+}
+
+export async function readInstalledSkill(
+  rootDir: string,
+  name: string,
+  fs: FileSystemAdapter,
+): Promise<string> {
+  const manifest = await readManifest(rootDir, fs);
+  const entry = manifest.skills.find((s) => s.name === name);
+  if (!entry) {
+    throw new Error(`Skill "${name}" is not installed.`);
+  }
+  return fs.readFile(fs.joinPath(rootDir, entry.path));
+}
+
+export async function writeInstalledSkill(
+  rootDir: string,
+  name: string,
+  content: string,
+  fs: FileSystemAdapter,
+): Promise<void> {
+  const manifest = await readManifest(rootDir, fs);
+  const entry = manifest.skills.find((s) => s.name === name);
+  if (!entry) {
+    throw new Error(`Skill "${name}" is not installed.`);
+  }
+
+  await fs.writeFile(fs.joinPath(rootDir, entry.path), content);
+  const localHash = hashContent(content);
+  entry.localHash = localHash;
+  await writeManifest(rootDir, manifest, fs);
+}
+
+export async function updateInstalledSkillsSafe(
+  rootDir: string,
+  fs: FileSystemAdapter,
+  options: SkillSafeUpdateOptions = {},
+): Promise<SkillSafeUpdateResult> {
+  const manifest = await readManifest(rootDir, fs);
+  const result: SkillSafeUpdateResult = {
+    updated: [],
+    skipped: [],
+    reviewRequired: [],
+    warnings: [],
+  };
+  const only = options.skills ? new Set(options.skills) : undefined;
+
+  for (const entry of manifest.skills) {
+    if (only && !only.has(entry.name)) continue;
+    if (entry.source !== "builtin") {
+      result.skipped.push(entry.name);
+      continue;
+    }
+
+    const builtin = skillsByName.get(entry.name);
+    if (!builtin) {
+      result.warnings.push(`Built-in skill "${entry.name}" no longer exists.`);
+      continue;
+    }
+    if (builtin.version === entry.version) {
+      result.skipped.push(entry.name);
+      continue;
+    }
+
+    const fullPath = fs.joinPath(rootDir, entry.path);
+    const candidateContent = renderSkillFile(builtin, {
+      provider: entry.selectedProvider,
+      model: entry.selectedModel,
+    });
+    const candidateHash = hashContent(candidateContent);
+    let currentContent = "";
+    let currentHash: string | undefined;
+
+    try {
+      currentContent = await fs.readFile(fullPath);
+      currentHash = hashContent(currentContent);
+    } catch {
+      currentHash = undefined;
+    }
+
+    const modified = Boolean(currentHash && entry.localHash && currentHash !== entry.localHash);
+    const candidate: SkillUpdateCandidate = {
+      name: entry.name,
+      path: entry.path,
+      installedVersion: entry.version,
+      availableVersion: builtin.version,
+      modified,
+      critical: isCriticalSkillUpdate(builtin),
+      reason: modified
+        ? "Local content differs from the recorded installed baseline. Review the improved prompt before applying."
+        : "A newer built-in skill version is available.",
+      currentContent: currentContent || undefined,
+      candidateContent,
+    };
+
+    if (modified || candidate.critical || !options.apply) {
+      result.reviewRequired.push(candidate);
+      continue;
+    }
+
+    await fs.writeFile(fullPath, candidateContent);
+    entry.version = builtin.version;
+    entry.localHash = candidateHash;
+    entry.upstreamHash = candidateHash;
+    result.updated.push(entry.name);
+  }
+
+  await writeManifest(rootDir, manifest, fs);
+  return result;
+}
+
+function isCriticalSkillUpdate(skill: BuiltinSkill): boolean {
+  return skill.category === "security" || skill.tags.some((tag) => ["security", "auth", "secrets"].includes(tag));
 }
 
 // ── Export ──
@@ -385,7 +653,7 @@ export async function exportSkillsToInstructionFormat(
 
   lines.push(MANAGED_START);
   lines.push("");
-  lines.push("# ContextKit Skills");
+  lines.push("# AgentContextKit Skills");
   lines.push("");
   lines.push("The following reusable skills are installed in `.contextkit/skills/`.");
   lines.push("");
@@ -430,7 +698,7 @@ async function updateManagedSection(
   const lines: string[] = [];
   lines.push(MANAGED_START);
   lines.push("");
-  lines.push("# ContextKit Skills");
+  lines.push("# AgentContextKit Skills");
   lines.push("");
   lines.push("The following reusable skills are installed in `.contextkit/skills/`.");
   lines.push("");

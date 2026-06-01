@@ -1,16 +1,16 @@
 # VS Code Extension
 
-ContextKit ships as a VS Code extension for in-editor context management.
+AgentContextKit ships as a VS Code extension for in-editor AI coding agent context management.
 
 ## Installation
 
-The extension is available from the VS Code Marketplace (search for "ContextKit") or can be installed from a `.vsix` file.
+The extension is available from the VS Code Marketplace (search for "AgentContextKit") or can be installed from a `.vsix` file.
 
 ## Features
 
 ### Sidebar
 
-The ContextKit sidebar appears in the activity bar and shows:
+The AgentContextKit sidebar appears in the activity bar and shows:
 
 1. **Project Overview** — file count, token estimate, issue count, health score
 2. **Instruction Files** — clickable list of all detected instruction files
@@ -20,7 +20,7 @@ The ContextKit sidebar appears in the activity bar and shows:
 
 ### Diagnostics
 
-ContextKit adds diagnostics (warnings/errors) directly in instruction files:
+AgentContextKit adds diagnostics (warnings/errors) directly in instruction files:
 
 - Duplicate rule warnings
 - Conflict warnings between files

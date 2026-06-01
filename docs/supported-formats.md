@@ -1,6 +1,6 @@
 # Supported Formats
 
-ContextKit detects and supports the following AI instruction file formats.
+AgentContextKit detects and supports the following AI instruction file formats.
 
 ## Format Table
 
@@ -31,7 +31,7 @@ alwaysApply: false
 # Rule Content Here
 ```
 
-ContextKit parses and validates Cursor frontmatter.
+AgentContextKit parses and validates Cursor frontmatter.
 
 ## Custom Formats
 

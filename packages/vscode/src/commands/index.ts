@@ -7,6 +7,7 @@ interface CommandDeps {
   getLastScanResult: () => ContextScanResult | undefined;
   setLastScanResult: (r: ContextScanResult) => void;
   refreshTree: () => void;
+  refreshSetupView: () => void;
   refreshDiagnostics: () => void;
   refreshStatusBar: () => void;
   scanWorkspace: () => Promise<ContextScanResult | undefined>;
@@ -20,14 +21,14 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
       vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: "ContextKit: Scanning workspace...",
+          title: "AgentContextKit: Scanning workspace...",
           cancellable: false,
         },
         async () => {
           const result = await deps.scanWorkspace();
           if (result) {
             vscode.window.showInformationMessage(
-              `ContextKit: Found ${result.files.length} instruction file(s). ${result.issues.length} issue(s). Health: ${result.healthScore}%`,
+              `AgentContextKit: Found ${result.files.length} instruction file(s). ${result.issues.length} issue(s). Health: ${result.healthScore}%`,
             );
           }
         },
@@ -59,7 +60,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
     vscode.commands.registerCommand("contextkit.generateInstructions", async () => {
       if (!deps.isWorkspaceTrusted()) {
         vscode.window.showErrorMessage(
-          "ContextKit: Write operations are disabled in untrusted workspaces.",
+          "AgentContextKit: Write operations are disabled in untrusted workspaces.",
         );
         return;
       }
@@ -105,7 +106,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
     vscode.commands.registerCommand("contextkit.splitInstructionFile", async () => {
       if (!deps.isWorkspaceTrusted()) {
         vscode.window.showErrorMessage(
-          "ContextKit: Write operations are disabled in untrusted workspaces.",
+          "AgentContextKit: Write operations are disabled in untrusted workspaces.",
         );
         return;
       }
@@ -119,7 +120,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
 
       const picked = await vscode.window.showQuickPick(files, {
         placeHolder: "Select a file to split",
-        title: "ContextKit: Split Instruction File",
+        title: "AgentContextKit: Split Instruction File",
       });
 
       if (!picked) return;
@@ -221,6 +222,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
           );
           deps.setLastScanResult(updated);
           deps.refreshTree();
+          deps.refreshSetupView();
           deps.refreshDiagnostics();
           deps.refreshStatusBar();
         } else {
@@ -250,14 +252,14 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
 
       const picked = await vscode.window.showQuickPick(files, {
         placeHolder: "Select a file to convert",
-        title: "ContextKit: Convert Instructions",
+        title: "AgentContextKit: Convert Instructions",
       });
 
       if (!picked) return;
 
       const target = await vscode.window.showQuickPick(targetFormats, {
         placeHolder: "Select target format",
-        title: "ContextKit: Convert Instructions",
+        title: "AgentContextKit: Convert Instructions",
       });
 
       if (!target || !isInstructionFileKind(target)) return;
@@ -326,7 +328,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
           ? packs[0]
           : await vscode.window.showQuickPick(packs, {
               placeHolder: "Select pack type",
-              title: "ContextKit: Create Context Pack",
+              title: "AgentContextKit: Create Context Pack",
             });
 
       if (!picked || !isContextPackType(picked)) return;
@@ -343,8 +345,8 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("contextkit.openSettings", () => {
-      vscode.commands.executeCommand("workbench.action.openSettings", "contextkit");
+    vscode.commands.registerCommand("contextkit.openSettings", async () => {
+      await vscode.commands.executeCommand("contextkit.setup.focus");
     }),
   );
 
@@ -358,7 +360,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
       const uri = resolveWorkspaceUri(rootPath, filePath);
       if (!uri) {
         vscode.window.showErrorMessage(
-          `ContextKit: Refusing to open a file outside the workspace: ${filePath}`,
+          `AgentContextKit: Refusing to open a file outside the workspace: ${filePath}`,
         );
         return;
       }
@@ -385,13 +387,82 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
       }));
       const picked = await vscode.window.showQuickPick(items, {
         placeHolder: "Search skills...",
-        title: "ContextKit: Skills",
+        title: "AgentContextKit: Skills",
         matchOnDescription: true,
         matchOnDetail: true,
       });
       if (picked) {
         await vscode.commands.executeCommand("contextkit.skillsPreview", picked.label);
       }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("contextkit.skillsWizard", async (initialSkillName?: string) => {
+      if (!deps.isWorkspaceTrusted()) {
+        vscode.window.showErrorMessage("AgentContextKit: Write operations disabled in untrusted workspaces.");
+        return;
+      }
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage("AgentContextKit: Open a workspace folder before installing skills.");
+        return;
+      }
+
+      const {
+        getSkill,
+        getSkillCatalog,
+        installSkills,
+        createNodeFileSystemAdapter,
+        resolveSkillSelection,
+      } = await import("@contextkit/core");
+      const catalog = getSkillCatalog();
+      const panel = vscode.window.createWebviewPanel(
+        "contextkit.skillsWizard",
+        "AgentContextKit Skill Install Wizard",
+        vscode.ViewColumn.One,
+        { enableScripts: true, localResourceRoots: [] },
+      );
+
+      panel.webview.html = generateSkillsWizardHtml({
+        catalog,
+        initialSkillName,
+        selectedSkill: initialSkillName ? getSkill(initialSkillName) : undefined,
+      });
+
+      panel.webview.onDidReceiveMessage(async (msg) => {
+        if (msg.command === "previewSkill") {
+          panel.webview.postMessage({
+            command: "skillPreview",
+            skill: typeof msg.name === "string" ? getSkill(msg.name) : undefined,
+          });
+          return;
+        }
+
+        if (msg.command === "install") {
+          const selection = normalizeSkillWizardSelection(msg.selection);
+          const selected = resolveSkillSelection(selection);
+          if (selected.length === 0) {
+            vscode.window.showWarningMessage("AgentContextKit: Select at least one skill to install.");
+            return;
+          }
+
+          const fs = createNodeFileSystemAdapter();
+          const providerModel = parseProviderModel(typeof msg.providerModel === "string" ? msg.providerModel : undefined);
+          const result = await installSkills({
+            rootDir: workspaceFolders[0]!.uri.fsPath,
+            skills: selected,
+            dryRun: false,
+            provider: providerModel.provider,
+            model: providerModel.model,
+            updateInstructionFiles: Boolean(msg.updateInstructionFiles),
+            targetFormat: typeof msg.targetFormat === "string" ? msg.targetFormat as any : undefined,
+          }, fs);
+          panel.webview.postMessage({ command: "installed", result });
+          deps.refreshTree();
+          deps.refreshSetupView();
+        }
+      });
     }),
   );
 
@@ -426,7 +497,9 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
       panel.webview.html = generateSkillPreviewHtml(skill, installed);
 
       panel.webview.onDidReceiveMessage(async (msg) => {
-        if (msg.command === "add" && workspaceFolders && deps.isWorkspaceTrusted()) {
+        if (msg.command === "wizard") {
+          await vscode.commands.executeCommand("contextkit.skillsWizard", skillName);
+        } else if (msg.command === "add" && workspaceFolders && deps.isWorkspaceTrusted()) {
           const { installSkills, createNodeFileSystemAdapter } = await import("@contextkit/core");
           const fs = createNodeFileSystemAdapter();
           const result = await installSkills({
@@ -437,6 +510,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
           if (result.installed.length > 0) {
             vscode.window.showInformationMessage(`Skill "${skillName}" installed.`);
             deps.refreshTree();
+            deps.refreshSetupView();
           }
         } else if (msg.command === "remove" && workspaceFolders && deps.isWorkspaceTrusted()) {
           const { removeInstalledSkill, createNodeFileSystemAdapter } = await import("@contextkit/core");
@@ -444,6 +518,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
           await removeInstalledSkill(workspaceFolders[0]!.uri.fsPath, skillName, fs);
           vscode.window.showInformationMessage(`Skill "${skillName}" removed.`);
           deps.refreshTree();
+          deps.refreshSetupView();
         }
       });
     }),
@@ -452,7 +527,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
   context.subscriptions.push(
     vscode.commands.registerCommand("contextkit.skillsAdd", async (skillName?: string) => {
       if (!deps.isWorkspaceTrusted()) {
-        vscode.window.showErrorMessage("ContextKit: Write operations disabled in untrusted workspaces.");
+        vscode.window.showErrorMessage("AgentContextKit: Write operations disabled in untrusted workspaces.");
         return;
       }
       const name = skillName || await vscode.window.showInputBox({ prompt: "Enter skill name to install" });
@@ -468,6 +543,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
       if (result.installed.length > 0) {
         vscode.window.showInformationMessage(`Installed: ${name}`);
         deps.refreshTree();
+        deps.refreshSetupView();
       } else {
         vscode.window.showWarningMessage(`Could not install "${name}". ${result.warnings.join(" ")}`);
       }
@@ -523,7 +599,7 @@ async function saveWorkspaceFile(
   const targetUri = getWorkspaceFileUri(rootUri, relativePath);
   if (!targetUri) {
     vscode.window.showErrorMessage(
-      `ContextKit: Refusing to save outside the workspace: ${relativePath}`,
+      `AgentContextKit: Refusing to save outside the workspace: ${relativePath}`,
     );
     return false;
   }
@@ -535,7 +611,7 @@ async function saveWorkspaceFile(
   const applied = await vscode.workspace.applyEdit(edit);
   if (!applied) {
     vscode.window.showErrorMessage(
-      `ContextKit: File already exists or could not be created: ${relativePath}`,
+      `AgentContextKit: File already exists or could not be created: ${relativePath}`,
     );
     return false;
   }
@@ -643,7 +719,7 @@ function isContextPackType(value: string | undefined): value is ContextPackType 
 function openWebviewReport(result: ContextScanResult, context: vscode.ExtensionContext): void {
   const panel = vscode.window.createWebviewPanel(
     "contextkit.report",
-    "ContextKit Report",
+    "AgentContextKit Report",
     vscode.ViewColumn.One,
     {
       enableScripts: false,
@@ -678,7 +754,7 @@ function generateReportHtml(result: ContextScanResult): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
-  <title>ContextKit Report</title>
+  <title>AgentContextKit Report</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -716,7 +792,7 @@ function generateReportHtml(result: ContextScanResult): string {
   </style>
 </head>
 <body>
-  <h1>ContextKit Report</h1>
+  <h1>AgentContextKit Report</h1>
   <p>Generated: ${escapeHtml(result.scannedAt)}</p>
   <p>Root: <code>${escapeHtml(result.rootDir)}</code></p>
 
@@ -789,7 +865,7 @@ function generateReportHtml(result: ContextScanResult): string {
   </ul>
 
   <p style="margin-top: 20px; opacity: 0.6; font-size: 12px;">
-    ContextKit - AI Coding Context Manager. Privacy-first. No data is sent externally.
+    AgentContextKit - AI Coding Agent Context Manager. Privacy-first. No data is sent externally.
   </p>
 </body>
 </html>`;
@@ -819,6 +895,295 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function normalizeSkillWizardSelection(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { skills: [] };
+  }
+  const input = value as Record<string, unknown>;
+  return {
+    all: input.all === true,
+    categories: Array.isArray(input.categories) ? input.categories.filter((v) => typeof v === "string") : [],
+    subcategories: Array.isArray(input.subcategories) ? input.subcategories.filter((v) => typeof v === "string") : [],
+    skills: Array.isArray(input.skills) ? input.skills.filter((v) => typeof v === "string") : [],
+  };
+}
+
+function parseProviderModel(value: string | undefined): { provider?: string; model?: string } {
+  if (!value) return {};
+  const separator = value.indexOf(":");
+  if (separator < 1 || separator === value.length - 1) return {};
+  return {
+    provider: value.slice(0, separator),
+    model: value.slice(separator + 1),
+  };
+}
+
+function generateSkillsWizardHtml(options: {
+  catalog: {
+    all: { count: number };
+    categories: Array<{ id: string; label: string; count: number }>;
+    subcategories: Array<{ id: string; label: string; count: number; category?: string }>;
+    skills: Array<{
+      name: string;
+      title: string;
+      category: string;
+      subcategory?: string;
+      description: string;
+      version: string;
+      tags: string[];
+      estimatedTokens?: number;
+      agentCompatibility?: any;
+      compatibility?: any;
+    }>;
+  };
+  initialSkillName?: string;
+  selectedSkill?: any;
+}): string {
+  const { catalog, initialSkillName } = options;
+  const providerOptions = collectProviderOptions(catalog.skills);
+  const skillOptions = catalog.skills
+    .map((skill) => `<option value="${escapeHtml(skill.name)}" ${skill.name === initialSkillName ? "selected" : ""}>${escapeHtml(skill.title)} (${escapeHtml(skill.name)})</option>`)
+    .join("");
+  const categoryRows = catalog.categories
+    .filter((category) => category.count > 0)
+    .map((category) => `<label><input type="checkbox" data-category="${escapeHtml(category.id)}"> ${escapeHtml(category.label)} <span>${category.count}</span></label>`)
+    .join("");
+  const subcategoryRows = catalog.subcategories
+    .filter((subcategory) => subcategory.count > 0)
+    .map((subcategory) => `<label><input type="checkbox" data-subcategory="${escapeHtml(subcategory.id)}"> ${escapeHtml(subcategory.label)} <span>${subcategory.count}</span></label>`)
+    .join("");
+  const providerRows = providerOptions
+    .map((option, index) => `<label><input type="radio" name="providerModel" value="${escapeHtml(option.value)}" ${index === 0 ? "checked" : ""}> <strong>${escapeHtml(option.provider)}</strong> ${escapeHtml(option.model)} <span>${escapeHtml(option.fit)}</span></label>`)
+    .join("");
+  const skillData = JSON.stringify(catalog.skills).replace(/</g, "\\u003c");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+  <title>AgentContextKit Skill Install Wizard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      line-height: 1.45;
+    }
+    header, main, footer { padding: 18px 22px; }
+    header { border-bottom: 1px solid var(--vscode-panel-border); }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 15px; margin-bottom: 10px; }
+    h3 { font-size: 13px; margin-top: 12px; }
+    p { color: var(--vscode-descriptionForeground); }
+    .steps { display: grid; gap: 16px; }
+    section {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 6px 0;
+    }
+    label span { margin-left: auto; color: var(--vscode-descriptionForeground); font-size: 12px; }
+    select {
+      width: 100%;
+      min-height: 32px;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border, transparent);
+      padding: 4px 8px;
+    }
+    button {
+      min-height: 32px;
+      border: 1px solid var(--vscode-button-border, transparent);
+      border-radius: 4px;
+      padding: 6px 12px;
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
+      cursor: pointer;
+    }
+    button.secondary {
+      color: var(--vscode-button-secondaryForeground);
+      background: var(--vscode-button-secondaryBackground);
+    }
+    .preview {
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      background: var(--vscode-sideBar-background);
+    }
+    .summary {
+      display: grid;
+      gap: 6px;
+      color: var(--vscode-descriptionForeground);
+    }
+    code {
+      background: var(--vscode-textCodeBlock-background);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      border-top: 1px solid var(--vscode-panel-border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Install Skills</h1>
+    <p>Select only the skills you need, tune them for the target provider and model, then import them into this workspace.</p>
+  </header>
+  <main class="steps">
+    <section aria-labelledby="scope-heading">
+      <h2 id="scope-heading">1. Choose Import Scope</h2>
+      <label><input type="checkbox" id="allSkills"> All skills <span>${catalog.all.count}</span></label>
+      <div class="grid">
+        <div>
+          <h3>Categories</h3>
+          ${categoryRows}
+        </div>
+        <div>
+          <h3>Subcategories</h3>
+          ${subcategoryRows}
+        </div>
+      </div>
+    </section>
+    <section aria-labelledby="skill-heading">
+      <h2 id="skill-heading">2. Pick Exact Skills</h2>
+      <select id="skillSelect" aria-label="Skill">
+        <option value="">Select a skill to add or preview</option>
+        ${skillOptions}
+      </select>
+      <div class="preview" id="preview">Select a skill to inspect its version knowledge and model setup.</div>
+    </section>
+    <section aria-labelledby="model-heading">
+      <h2 id="model-heading">3. Provider and Model Setup</h2>
+      <div class="grid">${providerRows}</div>
+    </section>
+    <section aria-labelledby="install-heading">
+      <h2 id="install-heading">4. Install Options</h2>
+      <label><input type="checkbox" id="updateInstructions"> Add managed skill references to the instruction file</label>
+      <div class="summary" id="summary"></div>
+    </section>
+  </main>
+  <footer>
+    <button class="secondary" id="refreshSummary">Refresh Summary</button>
+    <button id="install">Install Selected Skills</button>
+  </footer>
+  <script>
+    const vscode = acquireVsCodeApi();
+    const skills = ${skillData};
+    const skillSelect = document.getElementById("skillSelect");
+    const preview = document.getElementById("preview");
+    const summary = document.getElementById("summary");
+
+    function selectedSkillNames() {
+      const names = new Set();
+      if (skillSelect.value) names.add(skillSelect.value);
+      return [...names];
+    }
+
+    function selection() {
+      return {
+        all: document.getElementById("allSkills").checked,
+        categories: [...document.querySelectorAll("[data-category]:checked")].map((input) => input.dataset.category),
+        subcategories: [...document.querySelectorAll("[data-subcategory]:checked")].map((input) => input.dataset.subcategory),
+        skills: selectedSkillNames()
+      };
+    }
+
+    function providerModel() {
+      const checked = document.querySelector("input[name='providerModel']:checked");
+      return checked ? checked.value : "";
+    }
+
+    function renderPreview() {
+      const skill = skills.find((item) => item.name === skillSelect.value);
+      if (!skill) {
+        preview.textContent = "Select a skill to inspect its version knowledge and model setup.";
+        renderSummary();
+        return;
+      }
+      const versions = (skill.compatibility?.majorVersions || []).map((version) => "<li><strong>" + version.version + "</strong> " + version.status + ": " + version.features.join(", ") + "</li>").join("");
+      const selectedModel = providerModel();
+      const parts = selectedModel.split(":");
+      const provider = (skill.agentCompatibility?.providers || []).find((item) => item.provider === parts[0]);
+      const model = (provider?.models || []).find((item) => item.id === parts.slice(1).join(":"));
+      const setupItems = model?.setup || skill.agentCompatibility?.setup || [];
+      const setup = setupItems.map((item) => "<li>" + item + "</li>").join("");
+      const optimizationItems = model?.optimization || skill.agentCompatibility?.optimization || [];
+      const optimization = optimizationItems.map((item) => "<li>" + item + "</li>").join("");
+      const tokens = typeof skill.estimatedTokens === "number" ? skill.estimatedTokens.toLocaleString() : "unknown";
+      const fit = model?.fit || "unknown";
+      preview.innerHTML = "<h3>" + skill.title + "</h3><p>" + skill.description + "</p><p><code>" + skill.name + "</code> version " + skill.version + " · ~" + tokens + " tokens · " + fit + " fit for " + selectedModel + "</p><h3>Version Compatibility</h3><ul>" + (versions || "<li>General guidance across supported versions.</li>") + "</ul><h3>Provider Setup</h3><ul>" + (setup || "<li>Use the selected provider/model defaults.</li>") + "</ul><h3>Context Optimization</h3><ul>" + (optimization || "<li>Keep imported skills focused on the active task.</li>") + "</ul>";
+      renderSummary();
+    }
+
+    function renderSummary() {
+      const s = selection();
+      const count = (s.all ? ${catalog.all.count} : 0) + s.categories.length + s.subcategories.length + s.skills.length;
+      const selected = skills.find((item) => item.name === skillSelect.value);
+      const tokens = selected && typeof selected.estimatedTokens === "number" ? selected.estimatedTokens.toLocaleString() : "varies by selection";
+      summary.innerHTML = "<div>Selected scope entries: <strong>" + count + "</strong></div><div>Provider/model: <strong>" + providerModel() + "</strong></div><div>Approx token usage: <strong>~" + tokens + "</strong></div>";
+    }
+
+    skillSelect.addEventListener("change", renderPreview);
+    document.querySelectorAll("input").forEach((input) => input.addEventListener("change", () => { renderSummary(); if (input.name === "providerModel") renderPreview(); }));
+    document.getElementById("refreshSummary").addEventListener("click", renderSummary);
+    document.getElementById("install").addEventListener("click", () => {
+      vscode.postMessage({
+        command: "install",
+        selection: selection(),
+        providerModel: providerModel(),
+        updateInstructionFiles: document.getElementById("updateInstructions").checked,
+        targetFormat: "agents"
+      });
+    });
+    window.addEventListener("message", (event) => {
+      if (event.data.command === "installed") {
+        const result = event.data.result;
+        summary.innerHTML = "<div>Installed: <strong>" + result.installed.length + "</strong></div><div>Skipped: " + result.skipped.join(", ") + "</div>";
+      }
+    });
+    renderPreview();
+  </script>
+</body>
+</html>`;
+}
+
+function collectProviderOptions(skills: Array<{ agentCompatibility?: any }>): Array<{ value: string; provider: string; model: string; fit: string }> {
+  const seen = new Set<string>();
+  const options: Array<{ value: string; provider: string; model: string; fit: string }> = [];
+  for (const skill of skills) {
+    for (const provider of skill.agentCompatibility?.providers ?? []) {
+      for (const model of provider.models ?? []) {
+        const value = `${provider.provider}:${model.id}`;
+        if (seen.has(value)) continue;
+        seen.add(value);
+        options.push({ value, provider: provider.provider, model: model.id, fit: model.fit });
+      }
+    }
+  }
+  return options.length > 0 ? options : [{ value: "openai:gpt-5", provider: "openai", model: "gpt-5", fit: "excellent" }];
 }
 
 function generateSkillPreviewHtml(skill: { name: string; title: string; category: string; description: string; version: string; tags: string[]; content: string }, installed: boolean): string {
@@ -924,7 +1289,7 @@ function generateSkillPreviewHtml(skill: { name: string; title: string; category
     <div class="actions">
       ${installed
         ? '<button class="secondary" onclick="remove()">Remove</button>'
-        : '<button onclick="add()">Add Skill</button>'}
+        : '<button onclick="wizard()">Install With Wizard</button><button class="secondary" onclick="add()">Quick Add</button>'}
     </div>
   </div>
   <div class="content">
@@ -933,6 +1298,7 @@ function generateSkillPreviewHtml(skill: { name: string; title: string; category
   <script>
     const vscode = acquireVsCodeApi();
     function add() { vscode.postMessage({ command: "add" }); }
+    function wizard() { vscode.postMessage({ command: "wizard" }); }
     function remove() { vscode.postMessage({ command: "remove" }); }
   </script>
 </body>

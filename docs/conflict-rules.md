@@ -1,6 +1,6 @@
 # Conflict Rules
 
-ContextKit detects conflicting instructions across AI context files.
+AgentContextKit detects conflicting instructions across AI context files.
 
 ## Built-in Conflict Groups
 
@@ -75,7 +75,7 @@ Add custom conflict rules in `contextkit.config.json`:
 
 ## Resolution
 
-When conflicts are found, ContextKit recommends:
+When conflicts are found, AgentContextKit recommends:
 
 1. Choose a single approach
 2. Update all instruction files consistently

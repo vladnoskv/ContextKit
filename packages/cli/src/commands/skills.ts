@@ -151,12 +151,17 @@ async function handleAdd(args: CliArgs): Promise<void> {
   const fs = createNodeFileSystemAdapter();
   const format = getFormat(args);
   const dryRun = !!args.dryRun;
+  const provider = getStringFlag(args, "provider");
+  const model = getStringFlag(args, "model");
 
   if (dryRun) {
     const allNames = new Set([...names, ...resolveGroupSkills(groups)]);
     process.stdout.write(`[DRY RUN] Would install ${allNames.size} skill(s):\n`);
     for (const name of allNames) {
       process.stdout.write(`  - ${name}\n`);
+    }
+    if (provider || model) {
+      process.stdout.write(`Provider/model: ${provider ?? "default"}/${model ?? "default"}\n`);
     }
     return;
   }
@@ -168,6 +173,8 @@ async function handleAdd(args: CliArgs): Promise<void> {
     targetFormat: format,
     overwrite: !!args.flags["overwrite"] || !!args.flags["force"],
     updateInstructionFiles: !!args.flags["update-instructions"],
+    provider,
+    model,
     dryRun: false,
   }, fs);
 
@@ -179,7 +186,9 @@ async function handleAdd(args: CliArgs): Promise<void> {
   if (result.installed.length > 0) {
     process.stdout.write(`Installed ${result.installed.length} skill(s):\n`);
     for (const s of result.installed) {
-      process.stdout.write(`  - ${s.name} → ${s.path}\n`);
+      const tokenText = typeof s.estimatedTokens === "number" ? `, ~${s.estimatedTokens.toLocaleString()} tokens` : "";
+      const modelText = s.selectedProvider || s.selectedModel ? ` [${s.selectedProvider ?? "provider"}:${s.selectedModel ?? "model"}, ${s.modelFit ?? "unknown"} fit${tokenText}]` : "";
+      process.stdout.write(`  - ${s.name} → ${s.path}${modelText}\n`);
     }
   }
   if (result.skipped.length > 0) {
@@ -239,7 +248,9 @@ async function handleInstalled(args: CliArgs): Promise<void> {
   for (const s of installed) {
     const modified = s.modified ? " [modified]" : "";
     const outdated = s.upstreamHash && s.localHash !== s.upstreamHash ? " [outdated]" : "";
-    process.stdout.write(`  ${s.name} — ${s.title}${modified}${outdated}\n`);
+    const modelText = s.selectedProvider || s.selectedModel ? ` [${s.selectedProvider ?? "provider"}:${s.selectedModel ?? "model"}, ${s.modelFit ?? "unknown"} fit]` : "";
+    const tokenText = typeof s.estimatedTokens === "number" ? ` (~${s.estimatedTokens.toLocaleString()} tokens)` : "";
+    process.stdout.write(`  ${s.name} — ${s.title}${modelText}${tokenText}${modified}${outdated}\n`);
   }
 }
 
@@ -405,4 +416,9 @@ function getFormat(args: CliArgs): InstructionFormat {
   const fmt = (args.flags["format"] || args.flags["f"] || args.format || "agents") as string;
   if (VALID_FORMATS.includes(fmt as InstructionFormat)) return fmt as InstructionFormat;
   return "agents";
+}
+
+function getStringFlag(args: CliArgs, name: string): string | undefined {
+  const value = args.flags[name];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }

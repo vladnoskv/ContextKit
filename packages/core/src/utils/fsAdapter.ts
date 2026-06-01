@@ -14,6 +14,10 @@ export function createNodeFileSystemAdapter(): FileSystemAdapter {
       await fs.writeFile(filePath, content, "utf-8");
     },
 
+    async removeFile(filePath: string): Promise<void> {
+      await fs.rm(filePath, { force: true });
+    },
+
     async fileExists(filePath: string): Promise<boolean> {
       try {
         const st = await fs.lstat(filePath);

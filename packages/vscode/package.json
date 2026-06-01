@@ -1,8 +1,8 @@
 {
   "name": "contextkit-vscode",
-  "displayName": "ContextKit",
-  "version": "0.1.0",
-  "description": "AI Coding Context Manager — manage, validate, split, convert, and measure AI coding instruction files",
+  "displayName": "AgentContextKit",
+  "version": "0.2.0",
+  "description": "Local-first AI coding agent context manager for AGENTS.md, Claude, Cursor, Copilot, Codex, MCP skills, and prompt library hygiene",
   "publisher": "VladNoskov",
   "license": "MIT",
   "icon": "media/contextkit-icon.png",
@@ -19,8 +19,14 @@
   ],
   "keywords": [
     "ai",
+    "ai-agent",
+    "agentcontextkit",
     "context",
+    "agent-context",
     "instructions",
+    "skills",
+    "mcp",
+    "prompt-library",
     "agents.md",
     "claude.md",
     "cursor",
@@ -40,7 +46,9 @@
     "onCommand:contextkit.skillsSearch",
     "onCommand:contextkit.skillsPreview",
     "onCommand:contextkit.skillsAdd",
+    "onCommand:contextkit.skillsWizard",
     "onView:contextkit.sidebar",
+    "onView:contextkit.setup",
     "workspaceContains:**/AGENTS.md",
     "workspaceContains:**/CLAUDE.md",
     "workspaceContains:**/.cursor/rules/**",
@@ -51,58 +59,62 @@
     "commands": [
       {
         "command": "contextkit.scanWorkspace",
-        "title": "ContextKit: Scan Workspace"
+        "title": "AgentContextKit: Scan Workspace"
       },
       {
         "command": "contextkit.refresh",
-        "title": "ContextKit: Refresh"
+        "title": "AgentContextKit: Refresh"
       },
       {
         "command": "contextkit.openReport",
-        "title": "ContextKit: Open Report"
+        "title": "AgentContextKit: Open Report"
       },
       {
         "command": "contextkit.generateInstructions",
-        "title": "ContextKit: Generate Instructions"
+        "title": "AgentContextKit: Generate Instructions"
       },
       {
         "command": "contextkit.splitInstructionFile",
-        "title": "ContextKit: Split Instruction File"
+        "title": "AgentContextKit: Split Instruction File"
       },
       {
         "command": "contextkit.convertInstructions",
-        "title": "ContextKit: Convert Instructions"
+        "title": "AgentContextKit: Convert Instructions"
       },
       {
         "command": "contextkit.createContextPack",
-        "title": "ContextKit: Create Context Pack"
+        "title": "AgentContextKit: Create Context Pack"
       },
       {
         "command": "contextkit.openSettings",
-        "title": "ContextKit: Open Settings"
+        "title": "AgentContextKit: Open Setup"
       },
       {
         "command": "contextkit.openFile",
-        "title": "ContextKit: Open File"
+        "title": "AgentContextKit: Open File"
       },
       {
         "command": "contextkit.skillsSearch",
-        "title": "ContextKit: Search Skills"
+        "title": "AgentContextKit: Search Skills"
       },
       {
         "command": "contextkit.skillsPreview",
-        "title": "ContextKit: Preview Skill"
+        "title": "AgentContextKit: Preview Skill"
       },
       {
         "command": "contextkit.skillsAdd",
-        "title": "ContextKit: Add Skill"
+        "title": "AgentContextKit: Add Skill"
+      },
+      {
+        "command": "contextkit.skillsWizard",
+        "title": "AgentContextKit: Install Skills Wizard"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "contextkit",
-          "title": "ContextKit",
+          "title": "AgentContextKit",
           "icon": "media/contextkit-activitybar.png"
         }
       ]
@@ -112,11 +124,15 @@
         {
           "id": "contextkit.sidebar",
           "name": "Project Context"
+        },
+        {
+          "id": "contextkit.setup",
+          "name": "Setup"
         }
       ]
     },
     "configuration": {
-      "title": "ContextKit",
+      "title": "AgentContextKit",
       "properties": {
         "contextkit.autoScanOnOpen": {
           "type": "boolean",
@@ -170,7 +186,7 @@
         "contextkit.enableStatusBar": {
           "type": "boolean",
           "default": true,
-          "description": "Show ContextKit status in the status bar."
+          "description": "Show AgentContextKit status in the status bar."
         }
       }
     }

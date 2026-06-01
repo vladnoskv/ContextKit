@@ -18,7 +18,7 @@ export function generateReport(
 function generateMarkdownReport(result: ContextScanResult): string {
   const lines: string[] = [];
 
-  lines.push("# ContextKit Report");
+  lines.push("# AgentContextKit Report");
   lines.push("");
   lines.push(`Generated: ${result.scannedAt}`);
   lines.push(`Root: \`${result.rootDir}\``);

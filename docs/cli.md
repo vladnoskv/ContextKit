@@ -1,6 +1,6 @@
 # CLI Usage
 
-ContextKit provides a comprehensive CLI for managing AI instruction files.
+AgentContextKit provides a comprehensive CLI for managing AI coding agent instruction files.
 
 ## Installation
 

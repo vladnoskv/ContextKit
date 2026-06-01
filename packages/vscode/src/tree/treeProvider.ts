@@ -127,7 +127,7 @@ export class ContextKitTreeProvider
         {
           type: "text",
           label: "No scan results yet.",
-          tooltip: "Run ContextKit: Scan Workspace to populate this view.",
+          tooltip: "Run AgentContextKit: Scan Workspace to populate this view.",
         },
         {
           type: "action",

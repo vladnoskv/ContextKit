@@ -10,6 +10,7 @@ import { handleGenerate } from "./commands/generate.js";
 import { handlePack } from "./commands/pack.js";
 import { handleInit } from "./commands/init.js";
 import { handleSkills } from "./commands/skills.js";
+import { handleMcp } from "./commands/mcp.js";
 import { printHelp } from "./output/help.js";
 
 async function main(): Promise<void> {
@@ -51,6 +52,9 @@ async function main(): Promise<void> {
         break;
       case "skills":
         await handleSkills(args);
+        break;
+      case "mcp":
+        await handleMcp(args);
         break;
       default:
         // Default to scan

@@ -41,7 +41,7 @@ function convertToCopilot(input: ConvertInput, parsed: ReturnType<typeof parseMa
 
   lines.push("# GitHub Copilot Instructions");
   lines.push("");
-  lines.push("<!-- Converted from " + input.sourceKind + " by ContextKit -->");
+  lines.push("<!-- Converted from " + input.sourceKind + " by AgentContextKit -->");
   lines.push("");
 
   if (input.sourceKind === "agents") {
@@ -141,7 +141,7 @@ function convertToClaude(input: ConvertInput, parsed: ReturnType<typeof parseMar
 
   lines.push("# CLAUDE.md");
   lines.push("");
-  lines.push("<!-- Converted from " + input.sourceKind + " by ContextKit -->");
+  lines.push("<!-- Converted from " + input.sourceKind + " by AgentContextKit -->");
   lines.push("");
 
   if (sections.overview) {
@@ -186,7 +186,7 @@ function convertToAgents(input: ConvertInput, parsed: ReturnType<typeof parseMar
 
   lines.push("# AGENTS.md");
   lines.push("");
-  lines.push("<!-- Converted from " + input.sourceKind + " by ContextKit -->");
+  lines.push("<!-- Converted from " + input.sourceKind + " by AgentContextKit -->");
   lines.push("");
 
   if (input.sourceKind === "cursor") {
@@ -251,7 +251,7 @@ function convertToRoo(input: ConvertInput, parsed: ReturnType<typeof parseMarkdo
 
   lines.push("# Roo Rules");
   lines.push("");
-  lines.push("<!-- Converted from " + input.sourceKind + " by ContextKit -->");
+  lines.push("<!-- Converted from " + input.sourceKind + " by AgentContextKit -->");
   lines.push("");
 
   if (sections.overview) {
@@ -307,7 +307,7 @@ function extractCommonSections(parsed: ReturnType<typeof parseMarkdown>) {
 
 function wrapWithHeader(kind: InstructionFileKind, content: string, sourceKind: InstructionFileKind): string {
   const header = `# ${kind.toUpperCase()} Instructions
-<!-- Converted from ${sourceKind} by ContextKit -->
+<!-- Converted from ${sourceKind} by AgentContextKit -->
 
 `;
   return header + content;
