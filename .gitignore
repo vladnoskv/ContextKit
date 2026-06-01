@@ -17,5 +17,7 @@ Thumbs.db
 # Added from VS Code Explorer
 packages/core/test/
 packages/vscode/test/
+!packages/vscode/test/
+!packages/vscode/test/icon-assets.test.ts
 build.bat
 # End IgnoreKit
