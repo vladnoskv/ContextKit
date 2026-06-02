@@ -1,6 +1,6 @@
 {
   "name": "contextkit",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "AgentContextKit CLI — local-first AI coding agent context manager, instruction scanner, skill library, and MCP server",
   "type": "module",
   "main": "./dist/index.js",

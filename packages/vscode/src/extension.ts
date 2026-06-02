@@ -1,5 +1,11 @@
 import * as vscode from "vscode";
-import { scanContext, createNodeFileSystemAdapter, type ContextScanResult } from "@contextkit/core";
+import {
+  scanContext,
+  createNodeFileSystemAdapter,
+  getInstalledSkills,
+  type ContextScanResult,
+  type InstalledSkill,
+} from "@contextkit/core";
 import { ContextKitTreeProvider } from "./tree/treeProvider.js";
 import { DiagnosticsProvider } from "./diagnostics/diagnosticsProvider.js";
 import { StatusBarManager } from "./statusbar/statusBar.js";
@@ -14,6 +20,7 @@ let setupViewProvider: ContextKitSetupViewProvider;
 let diagnosticsProvider: DiagnosticsProvider;
 let statusBar: StatusBarManager;
 let lastScanResult: ContextScanResult | undefined;
+let installedSkills: InstalledSkill[] = [];
 
 export function activate(context: vscode.ExtensionContext): void {
   const config = getConfig();
@@ -45,9 +52,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerCommands(context, {
     getLastScanResult: () => lastScanResult,
+    getInstalledSkills: () => installedSkills,
     setLastScanResult: (r) => {
       lastScanResult = r;
     },
+    refreshInstalledSkills,
     refreshTree: () => treeProvider.refresh(),
     refreshSetupView: () => setupViewProvider.refresh(),
     refreshDiagnostics: () => diagnosticsProvider.updateDiagnostics(lastScanResult),
@@ -60,6 +69,8 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCodeActions(context, {
     isWorkspaceTrusted: () => vscode.workspace.isTrusted,
   });
+
+  void refreshInstalledSkills();
 
   // Auto-scan if enabled
   if (config.autoScanOnOpen) {
@@ -128,6 +139,7 @@ async function scanWorkspace(): Promise<ContextScanResult | undefined> {
 
     lastScanResult = result;
     treeProvider.setResult(result);
+    await refreshInstalledSkills();
     setupViewProvider.refresh();
     diagnosticsProvider.updateDiagnostics(result);
     statusBar.update(result);
@@ -137,4 +149,23 @@ async function scanWorkspace(): Promise<ContextScanResult | undefined> {
     vscode.window.showErrorMessage(`AgentContextKit scan failed: ${err.message}`);
     return undefined;
   }
+}
+
+async function refreshInstalledSkills(): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    installedSkills = [];
+    treeProvider.setInstalledSkills([]);
+    return;
+  }
+
+  try {
+    installedSkills = await getInstalledSkills(
+      workspaceFolders[0]!.uri.fsPath,
+      createNodeFileSystemAdapter(),
+    );
+  } catch {
+    installedSkills = [];
+  }
+  treeProvider.setInstalledSkills(installedSkills);
 }

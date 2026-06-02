@@ -9,8 +9,10 @@ AgentContextKit helps you keep `AGENTS.md`, Claude, Cursor, GitHub Copilot, Code
 - Scan your workspace for AI instruction files.
 - Find duplicate, conflicting, stale, oversized, or broken guidance.
 - See token estimates before prompts get too large.
+- Open a dashboard webview for workspace health, installed skills, and common actions.
 - Generate focused context packs for frontend, backend, database, testing, security, and deployment tasks.
 - Install modular agent skills with a step-by-step wizard.
+- See installed and recommended skills directly in the Project Context tree.
 - Choose skills by all, category, subcategory, or exact skill.
 - Tune imported skills for the model and provider you use.
 - Edit, remove, and safely update local skills without losing your changes.
@@ -32,6 +34,7 @@ Open the AgentContextKit activity bar to access:
 
 - **Project Context**: overview, instruction files, issues, context packs, and skills.
 - **Setup**: scan controls, diagnostics settings, token thresholds, and generation defaults.
+- **Open WebView**: dashboard panel with workspace metrics, installed skills, and quick actions.
 - **Skill Install Wizard**: select scope, preview exact skills, choose provider/model setup, and install.
 
 ## Commands
@@ -39,6 +42,7 @@ Open the AgentContextKit activity bar to access:
 | Command | Description |
 |---|---|
 | `AgentContextKit: Scan Workspace` | Scan for AI instruction files |
+| `AgentContextKit: Open WebView` | Open the dashboard webview |
 | `AgentContextKit: Open Report` | Open the local report |
 | `AgentContextKit: Refresh` | Re-run the scan |
 | `AgentContextKit: Generate Instructions` | Generate project-specific instruction files |

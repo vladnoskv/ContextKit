@@ -37,3 +37,27 @@ describe("VS Code icon assets", () => {
     }
   });
 });
+
+describe("VS Code command contributions", () => {
+  it("contributes an Open WebView command from the sidebar title menu", () => {
+    const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+
+    expect(manifest.activationEvents).toContain("onCommand:contextkit.openWebview");
+    expect(manifest.contributes.commands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          command: "contextkit.openWebview",
+          title: "AgentContextKit: Open WebView",
+        }),
+      ]),
+    );
+    expect(manifest.contributes.menus["view/title"]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          command: "contextkit.openWebview",
+          when: "view == contextkit.sidebar",
+        }),
+      ]),
+    );
+  });
+});

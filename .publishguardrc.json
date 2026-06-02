@@ -4,6 +4,12 @@
       "reason": "Reviewed false positive",
       "rule": "leading-slash",
       "file": ".npmignore"
+    },
+    {
+      "reason": "Reviewed false positive",
+      "rule": "vscode-settings",
+      "fingerprint": "vscode-settings:.vscode/settings.json:1:1",
+      "file": ".vscode/settings.json"
     }
   ],
   "includeGitIgnored": false,

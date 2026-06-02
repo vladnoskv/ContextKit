@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.2 - VS Code WebView and Skills Fixes
+
+### Added
+
+- Add `AgentContextKit: Open WebView` as a VS Code command and Project Context sidebar menu action.
+- Add a VS Code dashboard webview for workspace metrics, installed skills, and quick links to scan, reports, skills, and setup.
+
+### Fixed
+
+- Refresh and display installed skills in the VS Code Project Context tree after extension activation, scans, installs, and removals.
+- Filter recommended skills to known built-in skills so the sidebar and install flows do not suggest unavailable skill names.
+
 ## 0.2.1 - VS Code Activation Fix
 
 ### Fixed

@@ -814,28 +814,28 @@ export function getRecommendedSkills(
   const frameworkSet = new Set(detectedProject.frameworks.map((f) => f.toLowerCase()));
 
   if (frameworkSet.has("next.js")) {
-    recommendations.push("nextjs", "nextjs-app-router", "react-ui", "api-security", "environment-variables");
+    recommendations.push("nextjs-app-router", "react-ui", "api-security", "environment-variables");
   }
   if (frameworkSet.has("react")) {
-    recommendations.push("react", "react-ui", "frontend-performance");
+    recommendations.push("react-ui", "frontend-performance");
   }
   if (frameworkSet.has("vue")) {
-    recommendations.push("vue", "frontend-performance");
+    recommendations.push("frontend-performance");
   }
   if (frameworkSet.has("express")) {
-    recommendations.push("express", "api-design-rest", "api-security");
+    recommendations.push("api-design-rest", "api-security");
   }
   if (frameworkSet.has("fastify")) {
-    recommendations.push("fastify");
+    recommendations.push("api-design-rest", "api-security");
   }
   if (frameworkSet.has("nestjs")) {
-    recommendations.push("nestjs", "api-security");
+    recommendations.push("api-design-rest", "api-security", "zod-validation");
   }
   if (frameworkSet.has("svelte")) {
-    recommendations.push("sveltekit");
+    recommendations.push("frontend-performance", "accessibility-a11y");
   }
   if (frameworkSet.has("astro")) {
-    recommendations.push("astro");
+    recommendations.push("frontend-performance", "accessibility-a11y");
   }
 
   if (detectedProject.languages.includes("TypeScript")) {
@@ -845,16 +845,15 @@ export function getRecommendedSkills(
   if (detectedProject.testTools.length > 0) {
     for (const tool of detectedProject.testTools) {
       const lower = tool.toLowerCase();
-      if (lower === "vitest") recommendations.push("vitest");
-      if (lower === "jest") recommendations.push("jest");
-      if (lower === "playwright") recommendations.push("playwright");
-      if (lower === "cypress") recommendations.push("cypress");
+      if (["vitest", "jest", "playwright", "cypress"].includes(lower)) {
+        recommendations.push("testing-strategy", "react-testing");
+      }
     }
-    recommendations.push("testing-strategy", "mocking-strategy");
+    recommendations.push("testing-strategy");
   }
 
   if (detectedProject.hasDocker) {
-    recommendations.push("docker", "deployment-checklist");
+    recommendations.push("repo-health-check", "environment-variables");
   }
   if (detectedProject.hasDatabaseMigrations) {
     recommendations.push("database-migrations", "postgres-best-practices");
@@ -865,7 +864,7 @@ export function getRecommendedSkills(
 
   recommendations.push("security-review", "code-review", "context-budgeting");
 
-  return [...new Set(recommendations)];
+  return [...new Set(recommendations)].filter((name) => skillsByName.has(name));
 }
 
 // ── Resolve format path ──

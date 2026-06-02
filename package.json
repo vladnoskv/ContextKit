@@ -1,6 +1,6 @@
 {
   "name": "agentcontextkit",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "AgentContextKit — local-first AI coding agent context manager, instruction file scanner, prompt skill library, and MCP skill server",
   "keywords": [

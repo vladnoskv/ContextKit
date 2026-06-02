@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import type { ContextScanResult, BuiltinSkill, InstalledSkill, SkillGroupDefinition } from "@contextkit/core";
 import {
+  getRecommendedSkills as coreGetRecommendedSkills,
+  getSkill as coreGetSkill,
   getSkillsByCategory as coreGetSkillsByCategory,
   resolveGroupSkills as coreResolveGroupSkills,
 } from "@contextkit/core";
@@ -86,9 +88,15 @@ export class ContextKitTreeProvider
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private result: ContextScanResult | undefined;
+  private installedSkills: InstalledSkill[] = [];
 
   setResult(result: ContextScanResult): void {
     this.result = result;
+    this.refresh();
+  }
+
+  setInstalledSkills(skills: InstalledSkill[]): void {
+    this.installedSkills = skills;
     this.refresh();
   }
 
@@ -246,6 +254,27 @@ export class ContextKitTreeProvider
   }
 
   private getInstalledSkillNodes(): TreeNode[] {
+    if (this.installedSkills.length > 0) {
+      return [
+        ...this.installedSkills.map(
+          (skill): SkillNode => ({
+            type: "skill",
+            label: skill.name,
+            skillName: skill.name,
+            title: skill.title,
+            installed: true,
+          }),
+        ),
+        {
+          type: "action",
+          label: "Add Skills...",
+          command: "contextkit.skillsSearch",
+          tooltip: "Search and install more skills",
+          icon: "$(add)",
+        },
+      ];
+    }
+
     return [
       {
         type: "action",
@@ -258,13 +287,33 @@ export class ContextKitTreeProvider
   }
 
   private getRecommendedSkillNodes(): TreeNode[] {
+    if (this.result) {
+      const installedNames = new Set(this.installedSkills.map((skill) => skill.name));
+      const recommended = coreGetRecommendedSkills(this.result.detectedProject)
+        .filter((name) => !installedNames.has(name))
+        .map((name) => coreGetSkill(name))
+        .filter(Boolean) as BuiltinSkill[];
+
+      if (recommended.length > 0) {
+        return recommended.map(
+          (skill): SkillNode => ({
+            type: "skill",
+            label: skill.name,
+            skillName: skill.name,
+            title: skill.title,
+            installed: false,
+          }),
+        );
+      }
+    }
+
     return [
       {
         type: "action",
-        label: "Run scan to see recommendations",
-        command: "contextkit.scanWorkspace",
-        tooltip: "Scan workspace to get skill recommendations",
-        icon: "$(refresh)",
+        label: "Open Skills Wizard...",
+        command: "contextkit.skillsWizard",
+        tooltip: "Install skills for this workspace",
+        icon: "$(add)",
       },
     ];
   }
@@ -380,6 +429,13 @@ function buildActions(): ActionNode[] {
       command: "contextkit.scanWorkspace",
       tooltip: "Scan workspace for AI instruction files",
       icon: "$(search)",
+    },
+    {
+      type: "action",
+      label: "Open WebView",
+      command: "contextkit.openWebview",
+      tooltip: "Open the AgentContextKit dashboard webview",
+      icon: "$(window)",
     },
     {
       type: "action",

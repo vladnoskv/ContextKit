@@ -16,7 +16,8 @@ The AgentContextKit sidebar appears in the activity bar and shows:
 2. **Instruction Files** — clickable list of all detected instruction files
 3. **Issues** — duplicates, conflicts, oversized files, missing recommendations
 4. **Context Packs** — one-click generation for frontend, backend, etc.
-5. **Actions** — scan, report, split, convert, generate
+5. **Skills** — installed skills, recommended skills, and skill library browsing
+6. **Actions** — scan, open webview, report, split, convert, generate
 
 ### Diagnostics
 
@@ -35,6 +36,14 @@ The status bar shows:
 - Issue count (errors and warnings)
 - Click to open the full report
 
+### Dashboard Webview
+
+The Open WebView command opens a local dashboard showing:
+- Workspace health metrics
+- Instruction file count, token estimate, and issue count
+- Installed skills with current/modified status
+- Quick actions for scanning, reports, skill installation, and setup
+
 ### Webview Report
 
 A rich HTML report showing:
@@ -49,6 +58,7 @@ A rich HTML report showing:
 | Command | ID |
 |---|---|
 | Scan Workspace | `contextkit.scanWorkspace` |
+| Open WebView | `contextkit.openWebview` |
 | Open Report | `contextkit.openReport` |
 | Refresh | `contextkit.refresh` |
 | Generate Instructions | `contextkit.generateInstructions` |

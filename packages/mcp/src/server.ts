@@ -46,7 +46,7 @@ type ToolHandlers = ReturnType<typeof createSkillToolHandlers>;
 
 const SERVER_INFO = {
   name: "agentcontextkit-skills",
-  version: "0.2.1",
+  version: "0.2.2",
 };
 
 const TOOL_DEFINITIONS: ToolDefinition[] = [

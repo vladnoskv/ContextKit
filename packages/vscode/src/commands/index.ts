@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
-import type { ContextScanResult, ContextPackType, InstructionFileKind } from "@contextkit/core";
+import type { ContextScanResult, ContextPackType, InstructionFileKind, InstalledSkill } from "@contextkit/core";
 import type { ContextKitVSCodeConfig } from "../config/settings.js";
 
 interface CommandDeps {
   getLastScanResult: () => ContextScanResult | undefined;
+  getInstalledSkills: () => InstalledSkill[];
   setLastScanResult: (r: ContextScanResult) => void;
+  refreshInstalledSkills: () => Promise<void>;
   refreshTree: () => void;
   refreshSetupView: () => void;
   refreshDiagnostics: () => void;
@@ -52,6 +54,19 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
         return;
       }
       openWebviewReport(result, context);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("contextkit.openWebview", async () => {
+      const result = deps.getLastScanResult() ?? await deps.scanWorkspace();
+      await deps.refreshInstalledSkills();
+      openDashboardWebview({
+        result,
+        installedSkills: deps.getInstalledSkills(),
+        isTrusted: deps.isWorkspaceTrusted(),
+        hasWorkspace: Boolean(vscode.workspace.workspaceFolders?.length),
+      });
     }),
   );
 
@@ -459,6 +474,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
             targetFormat: typeof msg.targetFormat === "string" ? msg.targetFormat as any : undefined,
           }, fs);
           panel.webview.postMessage({ command: "installed", result });
+          await deps.refreshInstalledSkills();
           deps.refreshTree();
           deps.refreshSetupView();
         }
@@ -509,6 +525,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
           }, fs);
           if (result.installed.length > 0) {
             vscode.window.showInformationMessage(`Skill "${skillName}" installed.`);
+            await deps.refreshInstalledSkills();
             deps.refreshTree();
             deps.refreshSetupView();
           }
@@ -517,6 +534,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
           const fs = createNodeFileSystemAdapter();
           await removeInstalledSkill(workspaceFolders[0]!.uri.fsPath, skillName, fs);
           vscode.window.showInformationMessage(`Skill "${skillName}" removed.`);
+          await deps.refreshInstalledSkills();
           deps.refreshTree();
           deps.refreshSetupView();
         }
@@ -542,6 +560,7 @@ export function registerCommands(context: vscode.ExtensionContext, deps: Command
       }, fs);
       if (result.installed.length > 0) {
         vscode.window.showInformationMessage(`Installed: ${name}`);
+        await deps.refreshInstalledSkills();
         deps.refreshTree();
         deps.refreshSetupView();
       } else {
@@ -716,6 +735,209 @@ function isContextPackType(value: string | undefined): value is ContextPackType 
   );
 }
 
+function openDashboardWebview(options: {
+  result: ContextScanResult | undefined;
+  installedSkills: InstalledSkill[];
+  isTrusted: boolean;
+  hasWorkspace: boolean;
+}): void {
+  const panel = vscode.window.createWebviewPanel(
+    "contextkit.dashboard",
+    "AgentContextKit",
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+      localResourceRoots: [],
+    },
+  );
+
+  const nonce = getNonce();
+  panel.webview.html = generateDashboardHtml({ ...options, nonce });
+  panel.webview.onDidReceiveMessage(async (message: { command?: string }) => {
+    switch (message.command) {
+      case "scan":
+        await vscode.commands.executeCommand("contextkit.scanWorkspace");
+        break;
+      case "report":
+        await vscode.commands.executeCommand("contextkit.openReport");
+        break;
+      case "skills":
+        await vscode.commands.executeCommand("contextkit.skillsWizard");
+        break;
+      case "settings":
+        await vscode.commands.executeCommand("contextkit.openSettings");
+        break;
+    }
+  });
+}
+
+function generateDashboardHtml(options: {
+  nonce: string;
+  result: ContextScanResult | undefined;
+  installedSkills: InstalledSkill[];
+  isTrusted: boolean;
+  hasWorkspace: boolean;
+}): string {
+  const { nonce, result, installedSkills, isTrusted, hasWorkspace } = options;
+  const issueCount = result?.issues.length ?? 0;
+  const fileCount = result?.files.length ?? 0;
+  const tokenCount = result?.totalEstimatedTokens ?? 0;
+  const health = result?.healthScore;
+  const installedRows = installedSkills.length > 0
+    ? installedSkills
+        .map(
+          (skill) => `<tr>
+            <td><code>${escapeHtml(skill.name)}</code></td>
+            <td>${escapeHtml(skill.title)}</td>
+            <td>${skill.modified ? "Modified" : "Current"}</td>
+          </tr>`,
+        )
+        .join("")
+    : '<tr><td colspan="3">No skills installed yet.</td></tr>';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <title>AgentContextKit</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      line-height: 1.5;
+    }
+    header, main { padding: 22px 26px; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 24px; font-weight: 650; }
+    h2 { margin: 24px 0 10px; font-size: 16px; }
+    p { color: var(--vscode-descriptionForeground); }
+    .badge {
+      align-self: flex-start;
+      border-radius: 999px;
+      padding: 3px 10px;
+      color: var(--vscode-badge-foreground);
+      background: var(--vscode-badge-background);
+      white-space: nowrap;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    button {
+      min-height: 32px;
+      border: 1px solid var(--vscode-button-border, transparent);
+      border-radius: 4px;
+      padding: 6px 12px;
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
+      cursor: pointer;
+      font: inherit;
+    }
+    button.secondary {
+      color: var(--vscode-button-secondaryForeground);
+      background: var(--vscode-button-secondaryBackground);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      padding: 14px;
+      background: var(--vscode-sideBar-background);
+    }
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+    .metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--vscode-descriptionForeground);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--vscode-panel-border);
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      text-align: left;
+    }
+    th { background: var(--vscode-sideBar-background); }
+    code {
+      background: var(--vscode-textCodeBlock-background);
+      border-radius: 3px;
+      padding: 1px 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>AgentContextKit</h1>
+      <p>Workspace context, instruction health, context packs, and local skills.</p>
+      <div class="actions">
+        <button data-command="scan" ${hasWorkspace ? "" : "disabled"}>Scan Workspace</button>
+        <button class="secondary" data-command="report" ${result ? "" : "disabled"}>Open Report</button>
+        <button class="secondary" data-command="skills" ${hasWorkspace && isTrusted ? "" : "disabled"}>Install Skills</button>
+        <button class="secondary" data-command="settings">Open Setup</button>
+      </div>
+    </div>
+    <span class="badge">${!hasWorkspace ? "No workspace" : !isTrusted ? "Read-only" : result ? "Ready" : "Scan needed"}</span>
+  </header>
+  <main>
+    <section aria-labelledby="workspace-heading">
+      <h2 id="workspace-heading">Workspace</h2>
+      <div class="metrics">
+        <div class="metric"><strong>${fileCount}</strong><span>Instruction files</span></div>
+        <div class="metric"><strong>${tokenCount.toLocaleString()}</strong><span>Estimated tokens</span></div>
+        <div class="metric"><strong>${issueCount}</strong><span>Issues</span></div>
+        <div class="metric"><strong>${health === undefined ? "-" : `${health}%`}</strong><span>Health</span></div>
+      </div>
+    </section>
+    <section aria-labelledby="skills-heading">
+      <h2 id="skills-heading">Installed Skills</h2>
+      <table>
+        <thead><tr><th>Name</th><th>Title</th><th>Status</th></tr></thead>
+        <tbody>${installedRows}</tbody>
+      </table>
+    </section>
+  </main>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    document.querySelectorAll("[data-command]").forEach((button) => {
+      button.addEventListener("click", () => {
+        vscode.postMessage({ command: button.dataset.command });
+      });
+    });
+  </script>
+</body>
+</html>`;
+}
+
 function openWebviewReport(result: ContextScanResult, context: vscode.ExtensionContext): void {
   const panel = vscode.window.createWebviewPanel(
     "contextkit.report",
@@ -887,6 +1109,15 @@ function severityBadge(severity: string): string {
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function getNonce(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let nonce = "";
+  for (let i = 0; i < 32; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return nonce;
 }
 
 function escapeHtml(text: string): string {

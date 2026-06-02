@@ -1,7 +1,7 @@
 {
   "name": "contextkit-vscode",
   "displayName": "AgentContextKit",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Local-first AI coding agent context manager for AGENTS.md, Claude, Cursor, Copilot, Codex, MCP skills, and prompt library hygiene",
   "publisher": "VladNoskov",
   "license": "MIT",
@@ -39,6 +39,7 @@
     "onView:contextkit.setup",
     "onCommand:contextkit.scanWorkspace",
     "onCommand:contextkit.refresh",
+    "onCommand:contextkit.openWebview",
     "onCommand:contextkit.openReport",
     "onCommand:contextkit.generateInstructions",
     "onCommand:contextkit.splitInstructionFile",
@@ -65,6 +66,10 @@
       {
         "command": "contextkit.refresh",
         "title": "AgentContextKit: Refresh"
+      },
+      {
+        "command": "contextkit.openWebview",
+        "title": "AgentContextKit: Open WebView"
       },
       {
         "command": "contextkit.openReport",
@@ -133,6 +138,15 @@
           "id": "contextkit.setup",
           "name": "Setup",
           "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "contextkit.openWebview",
+          "when": "view == contextkit.sidebar",
+          "group": "navigation"
         }
       ]
     },
